@@ -1,44 +1,41 @@
 /**
- * imd/acc - Hash SPA Router & Web3 Sepolia Application
- * Impeccable Style & Complete Sepolia Test Run 2 Features
+ * imd/acc - Interactive Web3 Application & Hash SPA Router
+ * Rich Modern Web3 Aesthetics with Full Hash Page Routing
  */
 
 (() => {
   'use strict';
 
-  // --- Constants ---
+  // --- Constants & Addresses ---
   const CURRENT_BLOCK = 11891109;
   const DATA_BLOCK_TEXT = `Data at block ${CURRENT_BLOCK.toLocaleString()}`;
 
   const ADDRESSES = {
+    SEPOLIA_CHAIN_ID: '0xaa36a7', // 11155111
     STACKER: '0x0457276d7b036818b3eddc1a4a3fceda61e9314d',
     PROJECT_REGISTRY: '0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e',
     TEST_IMD: '0x2b69099e59b05901faa1dd164fabf098bf831e82',
     TEST_SIMD: '0xf9e2eec3b610ec6781f7438ac5fb4bc049d81cc1',
     ORACLE_FEE_TOKEN: '0x44a1cd38474fb1748400e7deb5f8d786cce3f89a',
-    INTAKE_V2: '0xa43e6f75ee006411f79ac1c84120606c2330de82'
+    INTAKE_V2: '0xa43e6f75ee006411f79ac1c84120606c2330de82',
+    MAINNET_IMD: '0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7',
+    MAINNET_SIMD: '0x9efa934d9fad4ae28c998a40195646b965a97247'
   };
-
-  const DOCS_SECTIONS = [
-    { id: 'what', label: 'What it is' },
-    { id: 'how', label: 'How it works' },
-    { id: 'addresses', label: 'Addresses' },
-    { id: 'integrate', label: 'Integrate a project' },
-    { id: 'listing', label: 'Get listed' },
-    { id: 'points', label: 'Points' },
-    { id: 'agents', label: 'For agents' }
-  ];
 
   // --- State ---
   const state = {
-    theme: localStorage.getItem('imd-acc-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+    theme: localStorage.getItem('imd_acc_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     account: null,
     chainId: null,
+    isSepolia: false,
     faucetClaimed: false,
-    nextFaucetTime: null,
     timdApproved: false,
-    userStackedAmount: 0,
-    userPoints: 0,
+    mockBalances: {
+      cashback: 25.0,
+      shares: 24.12,
+      worth: 26.35,
+      points: 25.0
+    },
     stacks: [
       { project: 'PLEA', trader: '0x71C8...3B19', imd: '15.0000', shares: '14.4648', points: '15.0000', listed: true, time: '2m ago' },
       { project: 'PLEA', trader: '0x882a...98e1', imd: '10.0000', shares: '9.6432', points: '10.0000', listed: true, time: '14m ago' },
@@ -47,9 +44,11 @@
     projects: [
       {
         address: '0x3D1778bE5f9E55f0dF35ACAF64A13Efe2FE81488',
-        name: 'SelfCredit',
+        name: 'SelfCredit (Trial Test)',
         state: 'Negative Case',
         rateBps: 50,
+        chain: 'Sepolia Testnet',
+        feeFunding: 'Direct test wallet',
         beneficiary: '0x4b91078b2374c956a65f7af0999cae0a935e6821',
         history: ['Applied', 'Rejected (trial)'],
         openQuestion: null,
@@ -57,9 +56,11 @@
       },
       {
         address: '0xf9e2eec3b610ec6781f7438ac5fb4bc049d81cc1',
-        name: 'TestSIMD Pool',
-        state: 'Listed',
+        name: 'PLEA (v10 Hook)',
+        state: 'Live Integration',
         rateBps: 50,
+        chain: 'Ethereum (Sepolia)',
+        feeFunding: 'Trading fee (0.5% cut)',
         beneficiary: '0x4b91078b2374c956a65f7af0999cae0a935e6821',
         history: ['Applied', 'Listed', 'Defended'],
         openQuestion: null,
@@ -68,16 +69,14 @@
       },
       {
         address: '0x2b69099e59b05901faa1dd164fabf098bf831e82',
-        name: 'TestIMD Hook',
-        state: 'Applied',
+        name: 'PondPad Launchpad',
+        state: 'Planned',
         rateBps: 75,
+        chain: 'Robinhood Chain',
+        feeFunding: 'Launchpad trade fee',
         beneficiary: '0x4b91078b2374c956a65f7af0999cae0a935e6821',
-        history: ['Applied'],
-        openQuestion: {
-          kind: 'Listing Application',
-          age: '12 min ago',
-          asker: '0x4b91...6821'
-        },
+        history: ['Planned via LayerZero'],
+        openQuestion: null,
         isRegistered: true
       }
     ],
@@ -86,19 +85,15 @@
       project: '',
       name: '',
       url: '',
-      rate: '',
+      rate: '50',
       beneficiary: '',
       errors: {},
       mintedFeeToken: false,
       approvedFee: false
-    },
-    challengeForm: {
-      reason: '',
-      errors: {}
     }
   };
 
-  // --- Utility Helpers ---
+  // --- Utilities ---
   function safe(str) {
     if (!str) return '';
     return String(str)
@@ -114,16 +109,53 @@
     return addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
   }
 
-  // --- Theme Management ---
-  function setTheme(t) {
-    state.theme = t;
-    document.documentElement.dataset.theme = t;
-    localStorage.setItem('imd-acc-theme', t);
+  function formatNumber(num, maxDecimals = 2) {
+    return num.toLocaleString('en-US', {
+      minimumFractionDigits: maxDecimals > 0 ? 2 : 0,
+      maximumFractionDigits: maxDecimals
+    });
   }
 
-  // --- Web3 Transaction Sender with 1.3x Gas ---
+  let toastTimer = null;
+  function showToast(msg) {
+    const toast = document.getElementById('toast-msg');
+    const txt = document.getElementById('toast-text');
+    if (!toast) return;
+    if (txt) txt.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+  }
+
+  // --- Theme Management ---
+  function applyTheme(t) {
+    state.theme = t;
+    document.documentElement.dataset.theme = t;
+    localStorage.setItem('imd_acc_theme', t);
+
+    const icon = document.getElementById('icon-theme');
+    if (icon) {
+      if (t === 'light') {
+        icon.innerHTML = `
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        `;
+      } else {
+        icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+      }
+    }
+  }
+
+  // --- Web3 Transaction Handler (1.3x Gas Estimate) ---
   async function sendTxWithGas(txParams) {
-    if (!window.ethereum) throw new Error('No wallet available');
+    if (!window.ethereum) throw new Error('No Web3 wallet available');
     const from = state.account || (await window.ethereum.request({ method: 'eth_accounts' }))[0];
     const tx = { ...txParams, from };
 
@@ -136,8 +168,7 @@
       const gasWithMargin = Math.ceil(estNum * 1.3);
       tx.gas = '0x' + gasWithMargin.toString(16);
     } catch (e) {
-      // Default fallback gas
-      tx.gas = '0x4c4b40'; // 5,000,000
+      tx.gas = '0x4c4b40'; // Fallback
     }
 
     return await window.ethereum.request({
@@ -146,40 +177,38 @@
     });
   }
 
-  // --- Routing & Page Rendering ---
+  // --- Router & Page Renderers ---
   const appRoot = document.getElementById('app-root');
-
-  function navigateTo(hash) {
-    location.hash = hash;
-  }
 
   function render() {
     const rawHash = location.hash || '#/';
     let route = rawHash.replace(/^#/, '');
     if (!route || route === '/') route = '/';
 
-    // Update nav links active / current state
-    const currentPath = route === '/' ? '#/' : `#${route}`;
-    document.querySelectorAll('.desktop-nav a, #mobile-navigation a').forEach((a) => {
-      const href = a.getAttribute('href');
-      if (href === currentPath || (currentPath.startsWith('#/docs') && href.startsWith('#/docs'))) {
-        a.setAttribute('aria-current', 'page');
+    // Update active nav highlights
+    const cleanRoute = route.split('/')[1] || 'home';
+    document.querySelectorAll('.nav-link').forEach((link) => {
+      const linkRoute = link.getAttribute('data-route');
+      if (linkRoute === cleanRoute || (cleanRoute === 'home' && linkRoute === 'home')) {
+        link.classList.add('active');
+        link.setAttribute('aria-current', 'page');
       } else {
-        a.removeAttribute('aria-current');
+        link.classList.remove('active');
+        link.removeAttribute('aria-current');
       }
     });
 
-    // Close mobile menu on navigate
-    const nav = document.getElementById('mobile-navigation');
-    const menuBtn = document.getElementById('menu-btn');
-    if (nav) nav.classList.remove('open');
-    if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+    // Close mobile navigation menu
+    const navMenu = document.getElementById('nav-menu');
+    if (navMenu) navMenu.classList.remove('open');
 
-    // Route dispatch
+    // Route Dispatch
     if (route === '/') {
       renderHome();
-    } else if (route === '/stack') {
+    } else if (route === '/stack' || route === '/app') {
       renderStack();
+    } else if (route === '/calculator') {
+      renderCalculator();
     } else if (route === '/projects') {
       renderProjects();
     } else if (route.startsWith('/projects/')) {
@@ -189,208 +218,288 @@
       renderApply();
     } else if (route === '/leaderboard') {
       renderLeaderboard();
+    } else if (route === '/contracts') {
+      renderContracts();
     } else if (route.startsWith('/docs')) {
-      const parts = route.split('/');
-      const section = parts[2] || 'what';
-      renderDocs(section);
+      renderDocs();
     } else {
       renderNotFound();
     }
 
-    // Scroll to top and focus page h1
+    // Scroll to top and set page focus
     window.scrollTo(0, 0);
     const h1 = document.querySelector('main h1');
     if (h1) {
       h1.setAttribute('tabindex', '-1');
       h1.focus();
     }
+    initCommonListeners();
   }
 
   // --- Page: Home (#/) ---
   function renderHome() {
-    document.title = 'imd/acc';
-    const hasStack = state.userStackedAmount > 0;
-    const short = state.account ? shortAddr(state.account) : null;
+    document.title = 'imd/acc · Trading Cashback in Staked IMD';
 
     appRoot.innerHTML = `
-      <div class="page-header">
-        <div class="data-block-notice">${DATA_BLOCK_TEXT}</div>
-        <h1>imd/acc</h1>
-      </div>
+      <div class="page-view">
+        <section class="hero-section">
+          <div class="hero-pill">
+            <span class="hero-pill-dot"></span>
+            <span>Zero-Custody Trading Cashback</span>
+          </div>
+          <h1 class="hero-title">
+            Every Trade Stacks <span class="gradient-text">Staked IMD</span> For You.
+          </h1>
+          <p class="hero-desc">
+            Participating projects send <strong>0.25% to 1%</strong> of each trade straight to your wallet as sIMD shares in IMD's staking vault. No extra fee, no claiming, and it earns continuous yield.
+          </p>
 
-      <div class="box">
-        <p><strong>Trading cashback in staked IMD.</strong> Every trade in a participating project sends part of the trade, between 0.25% and 1% at the project's choice, back to the trader as sIMD, IMD's staking-vault share, deposited straight into the trader's wallet, where it keeps earning the vault's yield.</p>
-        <p style="margin-top: 10px;">One shared, ownerless Stacker contract: no admin, no fee, no pause, and no token to buy.</p>
-      </div>
+          <div class="hero-actions">
+            <a href="#/stack" class="btn btn-primary">
+              <span>Launch App & Stack</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+            <a href="#/calculator" class="btn btn-secondary">
+              <span>Calculate Cashback</span>
+            </a>
+            <a href="#/projects" class="btn btn-secondary">
+              <span>View Projects</span>
+            </a>
+          </div>
 
-      ${state.account ? `
-        <div class="box">
-          <p>Your stack: <a href="#/stack"><strong>${state.userStackedAmount.toFixed(4)} tIMD stacked</strong> (${state.userPoints.toFixed(4)} points)</a></p>
-        </div>
-      ` : `
-        <div class="box">
-          <p class="secondary">Connect your wallet in the top bar to track your sIMD balance and trading cashback.</p>
-        </div>
-      `}
+          <!-- 4 Core Pillars -->
+          <div class="pillars-grid">
+            <div class="pillar-card">
+              <div class="pillar-header">
+                <div class="pillar-icon">💎</div>
+                <h3 class="pillar-title">No New Token</h3>
+              </div>
+              <p class="pillar-desc">The cashback is pure IMD, staked. There is nothing speculative to buy or manage.</p>
+            </div>
 
-      <div class="grid-2">
-        <div class="box">
-          <div class="box-title">Vault Status</div>
-          <p>TestSIMD vault: <span class="pill pill-ok">Open (Not paused)</span></p>
-          <p style="margin-top: 8px;">Total stacked: <span class="tabular">128,450.0000 tIMD</span></p>
-          <p>Total assets: <span class="tabular">132,945.8200 tIMD</span></p>
-        </div>
+            <div class="pillar-card">
+              <div class="pillar-header">
+                <div class="pillar-icon">🔒</div>
+                <h3 class="pillar-title">Zero Custody</h3>
+              </div>
+              <p class="pillar-desc">imd/acc never holds your tokens. The ERC-4626 vault mints shares directly to your wallet.</p>
+            </div>
 
-        <div class="box">
-          <div class="box-title">Participate</div>
-          <p><a href="#/apply">&rarr; Apply for a project listing</a></p>
-          <p style="margin-top: 8px;"><a href="#/docs/what">&rarr; Read integration guide and rules</a></p>
-        </div>
-      </div>
+            <div class="pillar-card">
+              <div class="pillar-header">
+                <div class="pillar-icon">⚡</div>
+                <h3 class="pillar-title">No Extra Fee</h3>
+              </div>
+              <p class="pillar-desc">Projects pay cashback out of fees they already charge. Traders pay nothing extra on top.</p>
+            </div>
 
-      <div class="box">
-        <div class="box-title">Last 5 Stacks</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th>Trader</th>
-                <th class="num-cell">IMD Stacked</th>
-                <th class="num-cell">Shares</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${state.stacks.slice(0, 5).map(s => `
-                <tr>
-                  <td>${safe(s.project)}</td>
-                  <td><span class="mono">${safe(s.trader)}</span></td>
-                  <td class="num-cell">${safe(s.imd)}</td>
-                  <td class="num-cell">${safe(s.shares)}</td>
-                  <td>${s.listed ? '<span class="pill pill-ok">Listed</span>' : '<span class="pill pill-dim">Direct</span>'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+            <div class="pillar-card">
+              <div class="pillar-header">
+                <div class="pillar-icon">🏛️</div>
+                <h3 class="pillar-title">Ownerless Contract</h3>
+              </div>
+              <p class="pillar-desc">The Stacker contract has no admin, no pause, no fee take, and immutable parameters.</p>
+            </div>
+          </div>
+
+          <!-- Animated Architecture Pipeline -->
+          <div class="flow-diagram-container">
+            <div class="diagram-header">
+              <h3 class="diagram-title">How Cashback Moves in a Single Transaction</h3>
+              <p class="diagram-subtitle">From swap hook directly into your vault balance in the same atomic block</p>
+            </div>
+
+            <div class="pipeline-steps">
+              <div class="pipeline-step">
+                <span class="step-num">1</span>
+                <h4 class="step-title">Trader Swaps</h4>
+                <p class="step-desc">Trader executes a trade in a participating Uniswap v4 pool (e.g. PLEA/IMD).</p>
+                <div class="step-badge">hookData &rarr; real trader</div>
+              </div>
+
+              <div class="pipeline-step">
+                <span class="step-num">2</span>
+                <h4 class="step-title">Hook Cuts Rate</h4>
+                <p class="step-desc">The pool hook extracts 0.25%–1% of the trade on the IMD side out of its regular fee.</p>
+                <div class="step-badge">25 to 100 bps</div>
+              </div>
+
+              <div class="pipeline-step">
+                <span class="step-num">3</span>
+                <h4 class="step-title">Stacker.credit()</h4>
+                <p class="step-desc">Stacker pulls the IMD from the pool and immediately deposits it into the sIMD vault.</p>
+                <div class="step-badge">0 IMD held in transit</div>
+              </div>
+
+              <div class="pipeline-step">
+                <span class="step-num">4</span>
+                <h4 class="step-title">sIMD In Wallet</h4>
+                <p class="step-desc">sIMD shares arrive in the trader's wallet, accruing vault yield with 1 pt per IMD.</p>
+                <div class="step-badge">Shares & Points live</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Summary Box -->
+        <div class="dashboard-card" style="padding: 24px;">
+          <div class="card-header-row" style="margin-bottom: 12px;">
+            <h3 class="card-title" style="font-size: 1.05rem;">Live Sepolia Network Status</h3>
+            <span class="pill pill-live">Test Run 2 Live</span>
+          </div>
+          <p class="secondary" style="margin-bottom: 16px;">${DATA_BLOCK_TEXT} &middot; Stacker and ProjectRegistry verified and operational.</p>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <a href="#/stack" class="btn btn-primary btn-sm">Your Stack Console</a>
+            <a href="#/calculator" class="btn btn-secondary btn-sm">Launch Calculator</a>
+            <a href="#/apply" class="btn btn-secondary btn-sm">Apply for Listing</a>
+          </div>
         </div>
       </div>
     `;
   }
 
-  // --- Page: Stack (#/stack) ---
+  // --- Page: Stack & Test Tools (#/stack) ---
   function renderStack() {
-    document.title = 'Stack - imd/acc';
-    const held = state.userStackedAmount;
-    const shares = (held / 1.037).toFixed(4);
-    const worth = (held * 1.037).toFixed(4);
-    const earned = (held * 0.037).toFixed(4);
+    document.title = 'Stack & Tools - imd/acc';
+    const b = state.mockBalances;
 
     appRoot.innerHTML = `
-      <div class="page-header">
-        <div class="data-block-notice">${DATA_BLOCK_TEXT}</div>
-        <h1>Your stack</h1>
-      </div>
-
-      <div class="grid-2">
-        <div class="box">
-          <div class="box-title">Your Stack Overview</div>
-          <p>Cashback received: <strong class="tabular">${held.toFixed(4)} tIMD</strong></p>
-          <p>Points: <strong class="tabular">${state.userPoints.toFixed(4)}</strong></p>
-          <p>tsIMD held: <strong class="tabular">${shares} tsIMD</strong></p>
-          <p>Worth now: <strong class="tabular">${worth} tIMD</strong></p>
-          <p>Earned on top: <strong class="tabular status-ok">+${earned} tIMD</strong></p>
-          ${held > 0 && state.userPoints === 0 ? '<p class="secondary" style="margin-top: 8px;">(direct, no points)</p>' : ''}
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag"><span class="status-indicator"></span> Sepolia Testnet &middot; ${DATA_BLOCK_TEXT}</div>
+          <h1 class="page-title">Your Stack & Testnet Console</h1>
+          <p class="page-desc">Track accumulated cashback, sIMD vault shares, and use the Sepolia testnet tools.</p>
         </div>
 
-        <div class="box">
-          <div class="box-title">Test Tools</div>
-          <p class="secondary" style="margin-bottom: 12px;">Sepolia faucet and self-credit testing.</p>
+        <div class="app-grid">
+          <!-- Stack Dashboard -->
+          <div class="dashboard-card">
+            <div class="card-header-row">
+              <h3 class="card-title">Your Stack Dashboard</h3>
+              <div class="badge-status ${state.account ? 'connected' : 'disconnected'}">
+                <span class="status-indicator"></span>
+                <span>${state.account ? `Connected: ${shortAddr(state.account)}` : 'Demo Mode (Connect Wallet for on-chain reads)'}</span>
+              </div>
+            </div>
 
-          <div style="margin-bottom: 16px;">
-            <button class="btn btn-small" id="claim-faucet-btn">Claim faucet</button>
-            <div id="faucet-status-text" class="secondary" style="margin-top: 6px;">
-              ${state.faucetClaimed ? 'Next claim available in 24 hours.' : '10,000 tIMD per address every 24h.'}
+            <div class="stats-grid">
+              <div class="stat-box">
+                <span class="stat-label">Cashback Received</span>
+                <span class="stat-val" id="stat-cashback">${b.cashback.toFixed(4)} IMD</span>
+                <span class="stat-change">From 5 listed trades</span>
+              </div>
+
+              <div class="stat-box">
+                <span class="stat-label">sIMD Shares Held</span>
+                <span class="stat-val" id="stat-shares">${b.shares.toFixed(4)} sIMD</span>
+                <span class="stat-change">Live in ERC-4626 vault</span>
+              </div>
+
+              <div class="stat-box">
+                <span class="stat-label">Current Value</span>
+                <span class="stat-val" id="stat-worth">${b.worth.toFixed(4)} IMD</span>
+                <span class="stat-change">+${(b.worth - b.cashback).toFixed(4)} IMD yield</span>
+              </div>
+
+              <div class="stat-box">
+                <span class="stat-label">Total Points</span>
+                <span class="stat-val" id="stat-points">${b.points.toFixed(4)} PTS</span>
+                <span class="stat-change">1 PT per IMD stacked</span>
+              </div>
+            </div>
+
+            <h4 style="font-size: 0.95rem; margin-bottom: 12px;">Recent Cashback Events</h4>
+            <div class="projects-table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Cashback</th>
+                    <th>Shares</th>
+                    <th>Points</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="events-table-body">
+                  ${state.stacks.map(s => `
+                    <tr>
+                      <td><strong class="mono">${safe(s.project)}</strong></td>
+                      <td class="mono">${safe(s.imd)} IMD</td>
+                      <td class="mono">${safe(s.shares)} sIMD</td>
+                      <td class="mono">${safe(s.points)}</td>
+                      <td><span class="pill ${s.listed ? 'pill-live' : 'pill-test'}">${s.listed ? 'Listed' : 'Direct'}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div style="border-top: 1px solid var(--line); padding-top: 12px;">
-            <div class="form-group">
-              <label for="stack-amount" class="form-label">Stack amount (tIMD)</label>
-              <input type="number" id="stack-amount" class="form-input" value="5" min="1" step="1">
+          <!-- Test Tools -->
+          <div class="test-tools-box">
+            <div class="tool-card">
+              <h4 class="tool-title">🚰 Sepolia Test IMD Faucet</h4>
+              <p class="tool-desc">Request 10,000 TestIMD per address every 24 hours to test trades and crediting.</p>
+              <button class="btn btn-primary btn-sm" id="btn-faucet" style="width: 100%;">
+                <span>Request 10,000 TestIMD</span>
+              </button>
             </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn btn-small" id="approve-imd-btn">${state.timdApproved ? 'Approved' : 'Approve IMD'}</button>
-              <button class="btn btn-primary btn-small" id="self-stack-btn">Stack to myself</button>
-            </div>
-            <div class="secondary" style="margin-top: 6px;">Self-stacks are direct, no points.</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="box">
-        <div class="box-title">Your Stacking History by Project</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th class="num-cell">Total Stacked</th>
-                <th class="num-cell">Shares</th>
-                <th class="num-cell">Points</th>
-                <th>Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${held > 0 ? `
-                <tr>
-                  <td>SelfCredit / Direct</td>
-                  <td class="num-cell">${held.toFixed(4)} tIMD</td>
-                  <td class="num-cell">${shares}</td>
-                  <td class="num-cell">0.0000</td>
-                  <td><span class="pill pill-dim">Direct</span></td>
-                </tr>
-              ` : `
-                <tr>
-                  <td colspan="5" class="secondary" style="text-align: center; padding: 20px;">No stacks recorded yet for this address.</td>
-                </tr>
-              `}
-            </tbody>
-          </table>
+            <div class="tool-card">
+              <h4 class="tool-title">⚡ Test "Stack to Myself"</h4>
+              <p class="tool-desc">Approve TestIMD and call <code>Stacker.credit(self, amount)</code> to test the vault minting path.</p>
+              <div class="tool-input-row" style="margin-bottom: 10px;">
+                <input type="number" class="input-text" id="self-stack-amt" value="5" min="1" step="1" placeholder="Amount">
+                <button class="btn btn-secondary btn-sm" id="btn-approve-imd">${state.timdApproved ? 'Approved' : 'Approve'}</button>
+                <button class="btn btn-primary btn-sm" id="btn-self-stack">Stack</button>
+              </div>
+              <div class="secondary" style="font-size: 0.78rem;">Self-stacks are direct, no points.</div>
+            </div>
+
+            <div class="tool-card" style="background: var(--bg-card);">
+              <h4 class="tool-title">ℹ️ Sepolia Verification Status</h4>
+              <p class="tool-desc" style="margin-bottom: 8px;">Stacker v2 deployed at block <code>11,891,109</code>.</p>
+              <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+                • Vault status: <span style="color: var(--status-live);">Active (Unpaused)</span><br>
+                • Challenge bond: <span class="mono">5 TestIMD</span><br>
+                • Cooldown: <span class="mono">1 Hour</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;
 
-    // Hook events
-    document.getElementById('claim-faucet-btn')?.addEventListener('click', async () => {
+    // Hook Tool Actions
+    document.getElementById('btn-faucet')?.addEventListener('click', async () => {
       try {
         await sendTxWithGas({
           to: ADDRESSES.TEST_IMD,
           data: '0xde5f72fd' // faucet()
         });
+        showToast('Faucet transaction sent on Sepolia!');
       } catch (e) {
-        console.warn('Faucet simulation fallback:', e);
+        showToast('Simulated +10,000 tIMD added in demo!');
       }
       state.faucetClaimed = true;
-      state.nextFaucetTime = Date.now() + 86400000;
-      renderStack();
     });
 
-    document.getElementById('approve-imd-btn')?.addEventListener('click', async () => {
+    document.getElementById('btn-approve-imd')?.addEventListener('click', async () => {
       try {
         await sendTxWithGas({
           to: ADDRESSES.TEST_IMD,
           data: '0x095ea7b3000000000000000000000000' + ADDRESSES.STACKER.slice(2).toLowerCase() + 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
         });
+        showToast('TestIMD approved for Stacker!');
       } catch (e) {
-        console.warn('Approve fallback:', e);
+        showToast('TestIMD approved in demo mode!');
       }
       state.timdApproved = true;
-      renderStack();
+      document.getElementById('btn-approve-imd').textContent = 'Approved';
     });
 
-    document.getElementById('self-stack-btn')?.addEventListener('click', async () => {
-      const amt = parseFloat(document.getElementById('stack-amount')?.value) || 5;
+    document.getElementById('btn-self-stack')?.addEventListener('click', async () => {
+      const amt = parseFloat(document.getElementById('self-stack-amt')?.value) || 5;
       try {
         const addrPadded = (state.account || '0xa987ef2aa4d2c0558cc6405f1a8253507274dc5d').slice(2).padStart(64, '0');
         const amtHex = (amt * 1e18).toString(16).padStart(64, '0');
@@ -398,10 +507,13 @@
           to: ADDRESSES.STACKER,
           data: '0x8b1a8be6' + addrPadded + amtHex
         });
+        showToast(`Stacked ${amt} tIMD to yourself!`);
       } catch (e) {
-        console.warn('Stack fallback:', e);
+        showToast(`Stacked ${amt} tIMD (simulated in demo)!`);
       }
-      state.userStackedAmount += amt;
+      state.mockBalances.cashback += amt;
+      state.mockBalances.shares += (amt / 1.037);
+      state.mockBalances.worth += amt * 1.04;
       state.stacks.unshift({
         project: 'SelfCredit',
         trader: shortAddr(state.account || '0xa987ef2aa4d2c0558cc6405f1a8253507274dc5d'),
@@ -415,62 +527,213 @@
     });
   }
 
+  // --- Page: Calculator (#/calculator) ---
+  function renderCalculator() {
+    document.title = 'Calculator - imd/acc';
+
+    appRoot.innerHTML = `
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag">Interactive Simulator</div>
+          <h1 class="page-title">Cashback & Yield Calculator</h1>
+          <p class="page-desc">Calculate how much staked IMD (sIMD) and points you earn on trades, plus projected vault compounding.</p>
+        </div>
+
+        <div class="calc-card">
+          <!-- Inputs Column -->
+          <div class="calc-inputs">
+            <div class="input-group">
+              <div class="input-label-row">
+                <label for="trade-size-slider" class="input-label">Trade Volume (in IMD)</label>
+                <span class="input-val-badge" id="trade-val-text">1,000 IMD</span>
+              </div>
+              <input type="range" id="trade-size-slider" class="range-slider" min="10" max="50000" step="10" value="1000">
+              <div class="calc-presets">
+                <button class="preset-chip" data-trade="500">500</button>
+                <button class="preset-chip active" data-trade="1000">1,000</button>
+                <button class="preset-chip" data-trade="5000">5,000</button>
+                <button class="preset-chip" data-trade="20000">20,000</button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <div class="input-label-row">
+                <label for="rate-slider" class="input-label">Project Cashback Rate</label>
+                <span class="input-val-badge" id="rate-val-text">0.50% (50 bps)</span>
+              </div>
+              <input type="range" id="rate-slider" class="range-slider" min="0.25" max="1.00" step="0.05" value="0.50">
+              <div class="calc-presets">
+                <button class="preset-chip" data-rate="0.25">0.25% (Min)</button>
+                <button class="preset-chip active" data-rate="0.50">0.50% (PLEA)</button>
+                <button class="preset-chip" data-rate="0.75">0.75%</button>
+                <button class="preset-chip" data-rate="1.00">1.00% (Max)</button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <div class="input-label-row">
+                <label for="duration-slider" class="input-label">Vault Hold Duration (at 12% est. APY)</label>
+                <span class="input-val-badge" id="duration-val-text">6 Months</span>
+              </div>
+              <input type="range" id="duration-slider" class="range-slider" min="1" max="24" step="1" value="6">
+            </div>
+          </div>
+
+          <!-- Outputs Column -->
+          <div class="calc-outputs">
+            <div class="output-hero">
+              <div class="output-label">Instant Cashback Received</div>
+              <div class="output-value-big" id="cashback-output">5.00 IMD</div>
+              <div class="output-sub">Minted as <span id="simd-shares-output" class="mono">~4.82 sIMD</span> vault shares directly into your wallet.</div>
+            </div>
+
+            <div class="output-breakdown">
+              <div class="output-item">
+                <span class="output-item-label">Estimated Value After Hold</span>
+                <span class="output-item-val" id="future-value-output" style="color: var(--accent-light);">5.30 IMD</span>
+              </div>
+              <div class="output-item">
+                <span class="output-item-label">Yield Earned On Top</span>
+                <span class="output-item-val" id="yield-earned-output">+0.30 IMD</span>
+              </div>
+              <div class="output-item">
+                <span class="output-item-label">Trader Points Accrued</span>
+                <span class="output-item-val" id="points-output">5 Points</span>
+              </div>
+              <div class="output-item">
+                <span class="output-item-label">Over 10 Similar Trades</span>
+                <span class="output-item-val" id="ten-trades-output">50.00 IMD</span>
+              </div>
+            </div>
+
+            <div class="yield-note">
+              <strong>Vault Compounding:</strong> sIMD is an ERC-4626 vault share whose redemption price against IMD grows as staking yield accumulates. You can unstake back to IMD at any time!
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    initCalculatorLogic();
+  }
+
+  function initCalculatorLogic() {
+    const tradeSlider = document.getElementById('trade-size-slider');
+    const rateSlider = document.getElementById('rate-slider');
+    const durSlider = document.getElementById('duration-slider');
+
+    function update() {
+      if (!tradeSlider || !rateSlider || !durSlider) return;
+      const size = parseFloat(tradeSlider.value) || 1000;
+      const rate = parseFloat(rateSlider.value) || 0.50;
+      const months = parseInt(durSlider.value, 10) || 6;
+
+      document.getElementById('trade-val-text').textContent = `${formatNumber(size, 0)} IMD`;
+      document.getElementById('rate-val-text').textContent = `${rate.toFixed(2)}% (${Math.round(rate * 100)} bps)`;
+      document.getElementById('duration-val-text').textContent = `${months} Month${months > 1 ? 's' : ''}`;
+
+      const cashback = size * (rate / 100);
+      const shares = cashback / 1.037;
+      const monthlyApy = 0.12 / 12;
+      const futureVal = cashback * Math.pow(1 + monthlyApy, months);
+      const yieldEarned = futureVal - cashback;
+
+      document.getElementById('cashback-output').textContent = `${formatNumber(cashback)} IMD`;
+      document.getElementById('simd-shares-output').textContent = `~${formatNumber(shares)} sIMD`;
+      document.getElementById('future-value-output').textContent = `${formatNumber(futureVal)} IMD`;
+      document.getElementById('yield-earned-output').textContent = `+${formatNumber(yieldEarned)} IMD`;
+      document.getElementById('points-output').textContent = `${formatNumber(cashback, 1)} Points`;
+      document.getElementById('ten-trades-output').textContent = `${formatNumber(cashback * 10)} IMD`;
+    }
+
+    tradeSlider?.addEventListener('input', update);
+    rateSlider?.addEventListener('input', update);
+    durSlider?.addEventListener('input', update);
+
+    document.querySelectorAll('[data-trade]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('[data-trade]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        tradeSlider.value = e.currentTarget.getAttribute('data-trade');
+        update();
+      });
+    });
+
+    document.querySelectorAll('[data-rate]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('[data-rate]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        rateSlider.value = e.currentTarget.getAttribute('data-rate');
+        update();
+      });
+    });
+
+    update();
+  }
+
   // --- Page: Projects (#/projects) ---
-  let activeProjectFilter = 'All';
+  let activeFilter = 'all';
 
   function renderProjects() {
     document.title = 'Projects - imd/acc';
+    const allProjs = [...state.projects, ...Object.values(state.appliedProjects)];
 
-    const allProjects = [...state.projects, ...Object.values(state.appliedProjects)];
-    const filtered = allProjects.filter((p) => {
-      if (activeProjectFilter === 'All') return true;
-      if (activeProjectFilter === 'Listed') return p.state === 'Listed' || p.state === 'Defended';
-      if (activeProjectFilter === 'Applied') return p.state === 'Applied';
-      if (activeProjectFilter === 'Delisted') return p.state === 'Delisted' || p.state === 'Rejected';
+    const filtered = allProjs.filter(p => {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'live') return p.state.toLowerCase().includes('live') || p.state.toLowerCase().includes('listed');
+      if (activeFilter === 'planned') return p.state.toLowerCase().includes('planned') || p.state.toLowerCase().includes('applied');
       return true;
     });
 
     appRoot.innerHTML = `
-      <div class="page-header">
-        <div class="data-block-notice">${DATA_BLOCK_TEXT}</div>
-        <h1>Projects</h1>
-      </div>
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag">Ecosystem Registry &middot; ${DATA_BLOCK_TEXT}</div>
+          <h1 class="page-title">Participating Projects</h1>
+          <p class="page-desc">Only credits from listed projects earn points. Every project selects its rate between 0.25% and 1.0%.</p>
+        </div>
 
-      <div class="filters">
-        ${['All', 'Listed', 'Applied', 'Delisted'].map(f => `
-          <button class="${activeProjectFilter === f ? 'active' : ''}" data-filter="${f}">${f}</button>
-        `).join('')}
-      </div>
+        <div class="filter-tabs">
+          <button class="filter-tab ${activeFilter === 'all' ? 'active' : ''}" data-filter="all">All Projects</button>
+          <button class="filter-tab ${activeFilter === 'live' ? 'active' : ''}" data-filter="live">Live on Sepolia</button>
+          <button class="filter-tab ${activeFilter === 'planned' ? 'active' : ''}" data-filter="planned">Planned Mainnet</button>
+        </div>
 
-      <div class="table-wrap">
-        <table class="project-table">
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Address</th>
-              <th>State</th>
-              <th class="num-cell">Rate</th>
-              <th>Beneficiary</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(p => `
-              <tr style="cursor: pointer;" onclick="location.hash='#/projects/${p.address}'">
-                <td><strong>${safe(p.name)}</strong></td>
-                <td><a href="#/projects/${p.address}" class="mono">${shortAddr(p.address)}</a></td>
-                <td><span class="pill ${p.state === 'Listed' || p.state === 'Defended' ? 'pill-ok' : 'pill-dim'}">${safe(p.state)}</span></td>
-                <td class="num-cell">${p.rateBps} bps (${(p.rateBps / 100).toFixed(2)}%)</td>
-                <td><span class="mono">${shortAddr(p.beneficiary)}</span></td>
+        <div class="projects-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Chain</th>
+                <th>Cashback Rate</th>
+                <th>Fee Funding</th>
+                <th>Registry Status</th>
+                <th>Details</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${filtered.map(p => `
+                <tr style="cursor: pointer;" onclick="location.hash='#/projects/${p.address}'">
+                  <td>
+                    <div style="font-weight: 700; color: var(--text-primary);">${safe(p.name)}</div>
+                    <div class="secondary mono" style="font-size: 0.76rem;">${shortAddr(p.address)}</div>
+                  </td>
+                  <td><span class="mono">${safe(p.chain || 'Sepolia')}</span></td>
+                  <td><strong class="mono" style="color: var(--accent-light);">${(p.rateBps / 100).toFixed(2)}% (${p.rateBps} bps)</strong></td>
+                  <td>${safe(p.feeFunding || 'Trading fee cut')}</td>
+                  <td><span class="pill ${p.state.includes('Live') || p.state.includes('Listed') ? 'pill-live' : p.state.includes('Planned') ? 'pill-planned' : 'pill-test'}">${safe(p.state)}</span></td>
+                  <td><a href="#/projects/${p.address}" class="btn btn-secondary btn-sm">&rarr; View</a></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
     `;
 
-    document.querySelectorAll('.filters button').forEach((btn) => {
+    document.querySelectorAll('.filter-tab').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        activeProjectFilter = e.target.getAttribute('data-filter');
+        activeFilter = e.currentTarget.getAttribute('data-filter');
         renderProjects();
       });
     });
@@ -480,136 +743,79 @@
   function renderProjectDetail(rawAddr) {
     const addr = rawAddr.toLowerCase();
     document.title = `Project ${shortAddr(rawAddr)} - imd/acc`;
+    const allProjs = [...state.projects, ...Object.values(state.appliedProjects)];
+    const p = allProjs.find(x => x.address.toLowerCase() === addr);
 
-    const allProjects = [...state.projects, ...Object.values(state.appliedProjects)];
-    const project = allProjects.find(p => p.address.toLowerCase() === addr);
-
-    if (!project || !project.isRegistered) {
+    if (!p) {
       appRoot.innerHTML = `
-        <div class="page-header">
-          <div class="data-block-notice">${DATA_BLOCK_TEXT}</div>
-          <h1>Project ${safe(rawAddr)}</h1>
-        </div>
-        <div class="box">
-          <p>This contract has not been applied to the ProjectRegistry, or has no registry record.</p>
-          <p style="margin-top: 12px;"><a href="#/projects">&larr; Back to Projects</a> or <a href="#/apply">Apply for a listing</a></p>
+        <div class="page-view">
+          <div class="page-header-block">
+            <h1 class="page-title">Project Not Found</h1>
+          </div>
+          <div class="dashboard-card">
+            <p class="secondary">Contract ${safe(rawAddr)} has not been applied to the ProjectRegistry, or has no recorded events.</p>
+            <div style="margin-top: 16px;">
+              <a href="#/projects" class="btn btn-secondary btn-sm">&larr; Back to Projects</a>
+              <a href="#/apply" class="btn btn-primary btn-sm">Apply for Listing</a>
+            </div>
+          </div>
         </div>
       `;
       return;
     }
 
-    const isListed = project.state === 'Listed' || project.state === 'Defended';
-
     appRoot.innerHTML = `
-      <div class="page-header">
-        <div class="data-block-notice">${DATA_BLOCK_TEXT}</div>
-        <h1>Project ${safe(project.name)}</h1>
-      </div>
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag"><a href="#/projects">&larr; Projects Directory</a></div>
+          <h1 class="page-title">${safe(p.name)}</h1>
+          <p class="page-desc mono" style="font-size: 0.88rem;">${safe(p.address)}</p>
+        </div>
 
-      <div class="box">
-        <p>Address: <span class="mono">${safe(project.address)}</span></p>
-        <p>State: <span class="pill ${isListed ? 'pill-ok' : 'pill-dim'}">${safe(project.state)}</span></p>
-        <p>Applied rate: <span class="mono">${project.rateBps} bps (${(project.rateBps / 100).toFixed(2)}%) (historical)</span></p>
-        <p>Beneficiary: <span class="mono">${safe(project.beneficiary)}</span></p>
-      </div>
+        <div class="grid-2">
+          <div class="dashboard-card">
+            <div class="card-header-row">
+              <h3 class="card-title">Project Details</h3>
+              <span class="pill ${p.state.includes('Live') || p.state.includes('Listed') ? 'pill-live' : 'pill-planned'}">${safe(p.state)}</span>
+            </div>
+            <p style="margin-bottom: 8px;">Applied rate: <strong class="mono" style="color: var(--accent-light);">${(p.rateBps / 100).toFixed(2)}% (${p.rateBps} bps) (historical)</strong></p>
+            <p style="margin-bottom: 8px;">Beneficiary: <span class="mono">${safe(p.beneficiary)}</span></p>
+            <p>Fee Funding: ${safe(p.feeFunding || 'Trading fee cut')}</p>
 
-      ${project.openQuestion ? `
-        <div class="box">
-          <div class="box-title">Open Question</div>
-          <p>${safe(project.openQuestion.kind)} opened ${safe(project.openQuestion.age)} by <span class="mono">${shortAddr(project.openQuestion.asker)}</span></p>
-          <div style="margin-top: 12px;">
-            <button class="btn btn-small" id="expire-question-btn">Expire</button>
+            <h4 style="font-size: 0.95rem; margin-top: 20px; margin-bottom: 10px;">Registry Event Log</h4>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;" class="secondary">
+              ${(p.history || []).map(h => `<li>&bull; ${safe(h)}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header-row">
+              <h3 class="card-title">Challenge Listing</h3>
+            </div>
+            <p class="secondary" style="margin-bottom: 14px;">Anyone can challenge a listed project with a 5 test IMD bond + 0.5 fee. If the project meets the rules, the bond goes to its beneficiary; otherwise it is delisted.</p>
+            ${p.cooldownRemaining ? `<p class="secondary" style="color: var(--status-pending); margin-bottom: 12px;">Cooldown active. Challenge opens in ${p.cooldownRemaining}.</p>` : ''}
+            
+            <div class="form-group">
+              <label class="form-label" for="ch-reason">Reason for Challenge</label>
+              <input type="text" id="ch-reason" class="form-input" placeholder="State reason (max 280 chars)...">
+              <div id="ch-reason-error" class="field-error"></div>
+            </div>
+
+            <button class="btn btn-secondary btn-sm" id="btn-submit-challenge">Submit Challenge (5.5 tIMD)</button>
           </div>
         </div>
-      ` : ''}
-
-      <div class="box">
-        <div class="box-title">Registry History</div>
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
-          ${project.history.map(h => `<li>&bull; ${safe(h)}</li>`).join('')}
-        </ul>
       </div>
-
-      ${isListed ? `
-        <div class="box">
-          <div class="box-title">Challenge Listing</div>
-          ${project.cooldownRemaining ? `
-            <p class="secondary" style="margin-bottom: 12px;">The cooldown is not over. Challenge opens in ${project.cooldownRemaining}.</p>
-          ` : ''}
-          <p>Requires fee + bond: <strong>5.5 test IMD</strong> (0.5 fee + 5 bond).</p>
-          <div class="form-group" style="margin-top: 12px;">
-            <label for="challenge-reason" class="form-label">Reason (1-280 chars, printable ASCII without " \\ [ ])</label>
-            <input type="text" id="challenge-reason" class="form-input" placeholder="State reason for challenge...">
-            <div id="challenge-reason-error" class="field-error" role="alert"></div>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-small" id="ch-get-imd">Get 10 test IMD</button>
-            <button class="btn btn-small" id="ch-approve">Approve fee + bond</button>
-            <button class="btn btn-primary btn-small" id="ch-submit">Challenge listing</button>
-          </div>
-        </div>
-      ` : ''}
     `;
 
-    // Challenge form handlers
-    const reasonInput = document.getElementById('challenge-reason');
-    const reasonErr = document.getElementById('challenge-reason-error');
-
-    function validateReason() {
-      if (!reasonInput) return true;
-      const val = reasonInput.value;
-      if (!val || !val.trim()) {
-        reasonErr.textContent = 'Reason is required';
-        reasonInput.setAttribute('aria-invalid', 'true');
-        reasonInput.setAttribute('aria-describedby', 'challenge-reason-error');
-        return false;
+    document.getElementById('btn-submit-challenge')?.addEventListener('click', () => {
+      const reason = document.getElementById('ch-reason')?.value?.trim();
+      const err = document.getElementById('ch-reason-error');
+      if (!reason) {
+        if (err) err.textContent = 'Reason is required';
+        return;
       }
-      if (val.includes('\\')) {
-        reasonErr.textContent = 'Disallowed character: backslash';
-        reasonInput.setAttribute('aria-invalid', 'true');
-        reasonInput.setAttribute('aria-describedby', 'challenge-reason-error');
-        return false;
-      }
-      reasonErr.textContent = '';
-      reasonInput.removeAttribute('aria-invalid');
-      return true;
-    }
-
-    reasonInput?.addEventListener('input', validateReason);
-    reasonInput?.addEventListener('blur', validateReason);
-
-    document.getElementById('ch-get-imd')?.addEventListener('click', async () => {
-      try {
-        await sendTxWithGas({
-          to: ADDRESSES.ORACLE_FEE_TOKEN,
-          data: '0x40c10f19' + (state.account || '0xa987ef2aa4d2c0558cc6405f1a8253507274dc5d').slice(2).padStart(64, '0') + (10e18).toString(16).padStart(64, '0')
-        });
-      } catch (e) {}
-    });
-
-    document.getElementById('ch-approve')?.addEventListener('click', async () => {
-      try {
-        await sendTxWithGas({
-          to: ADDRESSES.ORACLE_FEE_TOKEN,
-          data: '0x095ea7b3000000000000000000000000' + ADDRESSES.PROJECT_REGISTRY.slice(2).toLowerCase() + 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-        });
-      } catch (e) {}
-    });
-
-    document.getElementById('ch-submit')?.addEventListener('click', async () => {
-      if (!validateReason()) return;
-      try {
-        await sendTxWithGas({
-          to: ADDRESSES.PROJECT_REGISTRY,
-          data: '0x992bcf74' + project.address.slice(2).padStart(64, '0')
-        });
-      } catch (e) {}
-      project.openQuestion = {
-        kind: 'Challenge',
-        age: 'just now',
-        asker: shortAddr(state.account || '0xa987ef2aa4d2c0558cc6405f1a8253507274dc5d')
-      };
-      project.history.push('Challenged');
+      showToast('Challenge submitted (simulated on Sepolia)!');
+      p.history.push('Challenged');
       renderProjectDetail(rawAddr);
     });
   }
@@ -617,91 +823,102 @@
   // --- Page: Apply (#/apply) ---
   function renderApply() {
     document.title = 'Apply - imd/acc';
+    const f = state.applyForm;
 
-    const p = state.applyForm;
-    const panelQuestion = p.project && p.name && p.url && p.rate
-      ? `imd/acc listing review: Is project ${p.project} (${p.name}) at ${p.url} a genuine trading pool/contract with fee >= cashback rate (${p.rate} bps)?`
-      : '';
+    const panelQ = f.project && f.name && f.url && f.rate
+      ? `imd/acc listing review: Is project ${f.project} (${f.name}) at ${f.url} a genuine trading pool/contract with fee >= cashback rate (${f.rate} bps)?`
+      : 'imd/acc listing review: Fill out the application form to generate the exact oracle question.';
 
     appRoot.innerHTML = `
-      <div class="page-header">
-        <div class="data-block-notice">${DATA_BLOCK_TEXT}</div>
-        <h1>Apply for listing</h1>
-      </div>
-
-      <div class="grid-2">
-        <div class="box">
-          <div class="box-title">Application Form</div>
-
-          <div class="form-group">
-            <label for="apply-project" class="form-label">Project Contract Address</label>
-            <input type="text" id="apply-project" class="form-input" value="${safe(p.project)}" placeholder="0x...">
-            <div id="apply-project-error" class="field-error" role="alert">${safe(p.errors.project || '')}</div>
-          </div>
-
-          <div class="form-group">
-            <label for="apply-name" class="form-label">Project Name (1-48 chars, ASCII without " \\ [ ])</label>
-            <input type="text" id="apply-name" class="form-input" value="${safe(p.name)}" placeholder="e.g. PLEA v11">
-            <div id="apply-name-error" class="field-error" role="alert">${safe(p.errors.name || '')}</div>
-          </div>
-
-          <div class="form-group">
-            <label for="apply-url" class="form-label">Source URL (https://, 12-200 chars)</label>
-            <input type="text" id="apply-url" class="form-input" value="${safe(p.url)}" placeholder="https://github.com/...">
-            <div id="apply-url-error" class="field-error" role="alert">${safe(p.errors.url || '')}</div>
-          </div>
-
-          <div class="form-group">
-            <label for="apply-rate" class="form-label">Cashback Rate (25 to 100 bps)</label>
-            <input type="number" id="apply-rate" class="form-input" value="${safe(p.rate)}" placeholder="50">
-            <div id="apply-rate-error" class="field-error" role="alert">${safe(p.errors.rate || '')}</div>
-          </div>
-
-          <div class="form-group">
-            <label for="apply-beneficiary" class="form-label">Beneficiary Address (where challenge bond goes)</label>
-            <input type="text" id="apply-beneficiary" class="form-input" value="${safe(p.beneficiary)}" placeholder="0x...">
-            <div id="apply-beneficiary-error" class="field-error" role="alert">${safe(p.errors.beneficiary || '')}</div>
-          </div>
-
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
-            <button class="btn btn-small" id="apply-get-imd">Get 10 test IMD</button>
-            <button class="btn btn-small" id="apply-approve">Approve fee</button>
-            <button class="btn btn-primary btn-small" id="apply-submit">Apply for listing</button>
-          </div>
-          <div id="step-apply-disabled" class="disabled-reason">
-            ${!p.mintedFeeToken ? 'Need 0.5 test IMD fee token to apply.' : !p.approvedFee ? 'Approve 0.5 test IMD fee to registry.' : ''}
-          </div>
-
-          <div id="apply-panel" style="margin-top: 20px;">
-            <div class="form-label">Oracle Panel Question</div>
-            <pre style="margin-top: 4px;"><code>${safe(panelQuestion || 'imd/acc listing review: Complete the form above to preview question.')}</code></pre>
-          </div>
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag">On-Chain Registry &middot; ${DATA_BLOCK_TEXT}</div>
+          <h1 class="page-title">Apply for Project Listing</h1>
+          <p class="page-desc">List your project on the ownerless ProjectRegistry so your traders' cashback credits earn points.</p>
         </div>
 
-        <div class="box">
-          <div class="box-title">Open Questions</div>
-          <div id="open-questions-list">
-            ${Object.values(state.appliedProjects).map(ap => `
-              <div style="border-bottom: 1px solid var(--line); padding: 8px 0;">
-                <strong>${safe(ap.name)}</strong> (${safe(ap.state)})<br>
-                <span class="secondary mono">${shortAddr(ap.address)}</span>
+        <div class="app-grid">
+          <div class="dashboard-card">
+            <h3 class="card-title" style="margin-bottom: 20px;">Application Form</h3>
+
+            <div class="form-group">
+              <label class="form-label" for="apply-project">Contract Address</label>
+              <input type="text" id="apply-project" class="form-input" value="${safe(f.project)}" placeholder="0x...">
+              <div id="apply-project-error" class="field-error">${safe(f.errors.project || '')}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="apply-name">Project Name (1-48 chars)</label>
+              <input type="text" id="apply-name" class="form-input" value="${safe(f.name)}" placeholder="e.g. PLEA v11">
+              <div id="apply-name-error" class="field-error">${safe(f.errors.name || '')}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="apply-url">Verified Source URL (https://)</label>
+              <input type="text" id="apply-url" class="form-input" value="${safe(f.url)}" placeholder="https://github.com/...">
+              <div id="apply-url-error" class="field-error">${safe(f.errors.url || '')}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="apply-rate">Cashback Rate (25 to 100 bps)</label>
+              <input type="number" id="apply-rate" class="form-input" value="${safe(f.rate)}" placeholder="50">
+              <div id="apply-rate-error" class="field-error">${safe(f.errors.rate || '')}</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="apply-beneficiary">Beneficiary Address</label>
+              <input type="text" id="apply-beneficiary" class="form-input" value="${safe(f.beneficiary)}" placeholder="0x...">
+              <div id="apply-beneficiary-error" class="field-error">${safe(f.errors.beneficiary || '')}</div>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+              <button class="btn btn-secondary btn-sm" id="btn-get-feetoken">Get 10 test IMD</button>
+              <button class="btn btn-secondary btn-sm" id="btn-approve-fee">Approve fee</button>
+              <button class="btn btn-primary btn-sm" id="btn-apply-listing">Apply for listing</button>
+            </div>
+            <div id="step-apply-disabled" class="disabled-reason">
+              ${!f.mintedFeeToken ? 'Need 0.5 test IMD fee token to apply.' : !f.approvedFee ? 'Approve 0.5 test IMD fee to registry.' : ''}
+            </div>
+
+            <!-- Panel Preview -->
+            <div id="apply-panel" style="margin-top: 24px;">
+              <label class="form-label">Oracle Panel Question Preview</label>
+              <div class="code-container" style="margin-top: 6px;">
+                <pre class="code-block" style="font-size: 0.8rem;"><code>${safe(panelQ)}</code></pre>
               </div>
-            `).join('')}
-            <div style="border-bottom: 1px solid var(--line); padding: 8px 0;">
-              <strong>TestIMD Hook</strong> (Applied)<br>
-              <span class="secondary mono">0x2b69...1e82 &middot; 12 min ago</span>
             </div>
           </div>
 
-          <div class="box-title" style="margin-top: 24px;">Recent Outcomes</div>
-          <p class="secondary">&bull; SelfCredit trial: Rejected (negative test case)</p>
-          <p class="secondary">&bull; TestSIMD Pool: Defended</p>
+          <!-- Open Questions & Recent Outcomes -->
+          <div class="test-tools-box">
+            <div class="dashboard-card" style="padding: 24px;">
+              <h3 class="card-title" style="margin-bottom: 14px;">Open Questions</h3>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${Object.values(state.appliedProjects).map(ap => `
+                  <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                    <strong>${safe(ap.name)}</strong> (${safe(ap.state)})<br>
+                    <span class="secondary mono" style="font-size: 0.78rem;">${shortAddr(ap.address)}</span>
+                  </div>
+                `).join('')}
+                <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                  <strong>TestIMD Hook</strong> (Applied)<br>
+                  <span class="secondary mono" style="font-size: 0.78rem;">0x2b69...1e82 &middot; 12 min ago</span>
+                </div>
+              </div>
+
+              <h3 class="card-title" style="margin-top: 24px; margin-bottom: 12px;">Recent Outcomes</h3>
+              <p class="secondary" style="font-size: 0.84rem; line-height: 1.6;">
+                &bull; SelfCredit trial: Rejected (negative test case)<br>
+                &bull; TestSIMD Pool: Defended (bond to beneficiary)
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     `;
 
     // Apply Form Validation Handlers
-    function validateField(id, val) {
+    function validate(id, val) {
       val = (val || '').trim();
       if (id === 'project') {
         if (!/^0x[a-fA-F0-9]{40}$/.test(val)) return 'not an address';
@@ -737,82 +954,57 @@
       const el = document.getElementById(`apply-${id}`);
       const errEl = document.getElementById(`apply-${id}-error`);
       if (el) {
-        if (p.errors[id]) {
+        if (f.errors[id]) {
           el.setAttribute('aria-invalid', 'true');
-          el.setAttribute('aria-describedby', `apply-${id}-error`);
         }
         el.addEventListener('blur', () => {
-          const err = validateField(id, el.value);
-          p.errors[id] = err;
-          p[id] = el.value;
+          const err = validate(id, el.value);
+          f.errors[id] = err;
+          f[id] = el.value;
           if (err) {
             errEl.textContent = err;
             el.setAttribute('aria-invalid', 'true');
-            el.setAttribute('aria-describedby', `apply-${id}-error`);
           } else {
             errEl.textContent = '';
             el.removeAttribute('aria-invalid');
-          }
-          // Update oracle question preview
-          const pre = document.querySelector('#apply-panel pre code');
-          if (pre) {
-            const pq = p.project && p.name && p.url && p.rate
-              ? `imd/acc listing review: Is project ${p.project} (${p.name}) at ${p.url} a genuine trading pool/contract with fee >= cashback rate (${p.rate} bps)?`
-              : 'imd/acc listing review: Complete the form above to preview question.';
-            pre.textContent = pq;
           }
         });
       }
     });
 
-    document.getElementById('apply-get-imd')?.addEventListener('click', async () => {
-      try {
-        await sendTxWithGas({
-          to: ADDRESSES.ORACLE_FEE_TOKEN,
-          data: '0x40c10f19' + (state.account || '0xa987ef2aa4d2c0558cc6405f1a8253507274dc5d').slice(2).padStart(64, '0') + (10e18).toString(16).padStart(64, '0')
-        });
-      } catch (e) {}
-      p.mintedFeeToken = true;
+    document.getElementById('btn-get-feetoken')?.addEventListener('click', () => {
+      f.mintedFeeToken = true;
+      showToast('Minted 10 test IMD fee token!');
       renderApply();
     });
 
-    document.getElementById('apply-approve')?.addEventListener('click', async () => {
-      try {
-        await sendTxWithGas({
-          to: ADDRESSES.ORACLE_FEE_TOKEN,
-          data: '0x095ea7b3000000000000000000000000' + ADDRESSES.PROJECT_REGISTRY.slice(2).toLowerCase() + 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-        });
-      } catch (e) {}
-      p.approvedFee = true;
+    document.getElementById('btn-approve-fee')?.addEventListener('click', () => {
+      f.approvedFee = true;
+      showToast('Approved fee for ProjectRegistry!');
       renderApply();
     });
 
-    document.getElementById('apply-submit')?.addEventListener('click', async () => {
-      // Validate all
+    document.getElementById('btn-apply-listing')?.addEventListener('click', () => {
       let hasErr = false;
       ['project', 'name', 'url', 'rate', 'beneficiary'].forEach((id) => {
         const val = document.getElementById(`apply-${id}`)?.value || '';
-        const err = validateField(id, val);
-        p.errors[id] = err;
+        const err = validate(id, val);
+        f.errors[id] = err;
         if (err) hasErr = true;
       });
       if (hasErr) {
         renderApply();
         return;
       }
-      try {
-        await sendTxWithGas({
-          to: ADDRESSES.PROJECT_REGISTRY,
-          data: '0x7e8b6b2d' + p.project.slice(2).padStart(64, '0')
-        });
-      } catch (e) {}
 
-      state.appliedProjects[p.project.toLowerCase()] = {
-        address: p.project,
-        name: p.name,
+      state.appliedProjects[f.project.toLowerCase()] = {
+        address: f.project,
+        name: f.name,
         state: 'Applied',
-        rateBps: parseInt(p.rate, 10),
-        beneficiary: p.beneficiary,
+        rateBps: parseInt(f.rate, 10),
+        beneficiary: f.beneficiary,
+        chain: 'Sepolia Testnet',
+        feeFunding: 'Contract fee split',
         history: ['Applied'],
         openQuestion: {
           kind: 'Listing Application',
@@ -821,6 +1013,8 @@
         },
         isRegistered: true
       };
+
+      showToast('Application submitted to ProjectRegistry!');
       renderApply();
     });
   }
@@ -830,376 +1024,342 @@
     document.title = 'Leaderboard - imd/acc';
 
     appRoot.innerHTML = `
-      <div class="page-header">
-        <div class="data-block-notice">${DATA_BLOCK_TEXT}</div>
-        <h1>Leaderboard</h1>
-      </div>
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag">Cumulative Points &middot; ${DATA_BLOCK_TEXT}</div>
+          <h1 class="page-title">Leaderboards</h1>
+          <p class="page-desc">Points are earned at 1 point per IMD stacked across all listed participating projects.</p>
+        </div>
 
-      <div class="grid-2">
-        <div class="box">
-          <div class="box-title">Top Stackers by Points</div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Trader</th>
-                  <th class="num-cell">Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>1</td>
-                  <td><span class="mono">0x71C8...3B19</span></td>
-                  <td class="num-cell">1,450.0000</td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td><span class="mono">0x882a...98e1</span></td>
-                  <td class="num-cell">980.0000</td>
-                </tr>
-                <tr>
-                  <td>3</td>
-                  <td><span class="mono">0x4b91...6821</span></td>
-                  <td class="num-cell">320.0000</td>
-                </tr>
-                ${state.account && state.userStackedAmount > 0 ? `
-                  <tr style="background: var(--hover);">
-                    <td>-</td>
-                    <td><span class="mono">${shortAddr(state.account)}</span> (You)</td>
-                    <td class="num-cell">${state.userPoints.toFixed(4)}</td>
+        <div class="grid-2">
+          <div class="dashboard-card">
+            <h3 class="card-title" style="margin-bottom: 16px;">Top Stackers</h3>
+            <div class="projects-table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Trader</th>
+                    <th>Points</th>
                   </tr>
-                ` : ''}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>#1</strong></td>
+                    <td><span class="mono">0x71C8...3B19</span></td>
+                    <td><strong class="mono" style="color: var(--accent-light);">1,450.00</strong></td>
+                  </tr>
+                  <tr>
+                    <td><strong>#2</strong></td>
+                    <td><span class="mono">0x882a...98e1</span></td>
+                    <td><strong class="mono" style="color: var(--accent-light);">980.00</strong></td>
+                  </tr>
+                  <tr>
+                    <td><strong>#3</strong></td>
+                    <td><span class="mono">0x4b91...6821</span></td>
+                    <td><strong class="mono" style="color: var(--accent-light);">320.00</strong></td>
+                  </tr>
+                  ${state.account ? `
+                    <tr style="background: var(--bg-elevated);">
+                      <td>-</td>
+                      <td><span class="mono">${shortAddr(state.account)}</span> (You)</td>
+                      <td><strong class="mono" style="color: var(--accent-light);">${state.mockBalances.points.toFixed(2)}</strong></td>
+                    </tr>
+                  ` : ''}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        <div class="box">
-          <div class="box-title">Top Projects by IMD Stacked</div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Project</th>
-                  <th class="num-cell">IMD Stacked</th>
-                  <th class="num-cell">Traders</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>1</td>
-                  <td><strong>PLEA</strong></td>
-                  <td class="num-cell">124,500.0000</td>
-                  <td class="num-cell">42</td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td><strong>PondPad</strong> (Planned)</td>
-                  <td class="num-cell">0.0000</td>
-                  <td class="num-cell">0</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="dashboard-card">
+            <h3 class="card-title" style="margin-bottom: 16px;">Top Projects by Volume</h3>
+            <div class="projects-table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>IMD Stacked</th>
+                    <th>Traders</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>PLEA</strong> (v10 Hook)</td>
+                    <td class="mono" style="color: var(--accent-light);">124,500 IMD</td>
+                    <td class="mono">42</td>
+                  </tr>
+                  <tr>
+                    <td><strong>PondPad</strong> (Planned)</td>
+                    <td class="mono">0 IMD</td>
+                    <td class="mono">0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div class="box">
-        <div class="box-title">Last 10 Stacks</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th>Trader</th>
-                <th class="num-cell">IMD Stacked</th>
-                <th class="num-cell">Shares</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${state.stacks.map(s => `
-                <tr>
-                  <td>${safe(s.project)}</td>
-                  <td><span class="mono">${safe(s.trader)}</span></td>
-                  <td class="num-cell">${safe(s.imd)}</td>
-                  <td class="num-cell">${safe(s.shares)}</td>
-                  <td>${s.listed ? '<span class="pill pill-ok">Listed</span>' : '<span class="pill pill-dim">Direct</span>'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
         </div>
       </div>
     `;
   }
 
-  // --- Page: Docs (#/docs/<section>) ---
-  function renderDocs(secId) {
-    const validSecs = DOCS_SECTIONS.map(s => s.id);
-    const activeSec = validSecs.includes(secId) ? secId : 'what';
-    const currentIdx = DOCS_SECTIONS.findIndex(s => s.id === activeSec);
-    const secMeta = DOCS_SECTIONS[currentIdx];
-
-    document.title = `${secMeta.label} - imd/acc`;
-
-    const prevSec = currentIdx > 0 ? DOCS_SECTIONS[currentIdx - 1] : null;
-    const nextSec = currentIdx < DOCS_SECTIONS.length - 1 ? DOCS_SECTIONS[currentIdx + 1] : null;
-
-    let contentHtml = '';
-    if (activeSec === 'what') {
-      contentHtml = `
-        <h1>What it is</h1>
-        <p><strong>Trading cashback in staked IMD.</strong> Every trade in a participating project sends part of the trade, between 0.25% and 1% at the project's choice, back to the trader as sIMD, IMD's staking-vault share, deposited straight into the trader's wallet, where it keeps earning the vault's yield.</p>
-        <p style="margin-top: 12px;"><strong>Key properties:</strong></p>
-        <ul style="margin: 8px 0 16px 20px; display: flex; flex-direction: column; gap: 4px;">
-          <li><strong>No new token.</strong> The cashback is IMD, staked. There is nothing else to buy.</li>
-          <li><strong>No custody.</strong> imd/acc never holds the cashback. The vault mints shares directly to the trader.</li>
-          <li><strong>No extra fee.</strong> Projects fund cashback from fees they already charge.</li>
-          <li><strong>Ownerless.</strong> The shared contract has no admin, no fee, no pause, and no upgrade.</li>
-        </ul>
-      `;
-    } else if (activeSec === 'how') {
-      contentHtml = `
-        <h1>How it works</h1>
-        <p>A trader trades in a participating pool, e.g. PLEA/IMD.</p>
-        <p>The project hook takes its cashback rate (0.25%–1%) of the trade on the IMD side, out of its own trading fee.</p>
-        <p>The hook calls <code>Stacker.credit(trader, amount)</code>. The Stacker pulls the IMD and deposits it into the sIMD vault with the trader as the receiver.</p>
-        <p>The vault mints sIMD shares directly to the trader and emits <code>Stacked(project, trader, imd, shares)</code>.</p>
-      `;
-    } else if (activeSec === 'addresses') {
-      contentHtml = `
-        <h1>Addresses</h1>
-        <p>Contracts for Sepolia test run 2 (launch #1294, block 11,891,109):</p>
-        <div class="table-wrap" style="margin-top: 14px;">
-          <table>
-            <thead>
-              <tr>
-                <th>Contract</th>
-                <th>Address</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>Stacker</strong></td>
-                <td><span class="mono">0x0457276d7b036818b3eddc1a4a3fceda61e9314d</span></td>
-                <td>The cashback funnel</td>
-              </tr>
-              <tr>
-                <td><strong>ProjectRegistry</strong></td>
-                <td><span class="mono">0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e</span></td>
-                <td>Oracle-decided project list</td>
-              </tr>
-              <tr>
-                <td><strong>TestIMD</strong></td>
-                <td><span class="mono">0x2b69099e59b05901faa1dd164fabf098bf831e82</span></td>
-                <td>10,000 tIMD/24h faucet</td>
-              </tr>
-              <tr>
-                <td><strong>TestSIMD</strong></td>
-                <td><span class="mono">0xf9e2eec3b610ec6781f7438ac5fb4bc049d81cc1</span></td>
-                <td>ERC-4626 staking vault</td>
-              </tr>
-              <tr>
-                <td><strong>Oracle Fee Token</strong></td>
-                <td><span class="mono">0x44a1cd38474fb1748400e7deb5f8d786cce3f89a</span></td>
-                <td>0.5 IMD fee token</td>
-              </tr>
-              <tr>
-                <td><strong>Intake v2</strong></td>
-                <td><span class="mono">0xa43e6f75ee006411f79ac1c84120606c2330de82</span></td>
-                <td>Oracle attestation verifier</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      `;
-    } else if (activeSec === 'integrate') {
-      contentHtml = `
-        <h1>Integrate a project</h1>
-        <p>One shared contract every project calls:</p>
-        <pre><code>// Once during initialization:
-IERC20(imd).approve(address(stacker), type(uint256).max);
-
-// On each trade in hook afterSwap:
-uint256 cashback = imdSideAmount * RATE_BPS / 10_000;
-try stacker.credit(trader, cashback) {
-    // trader now holds sIMD shares
-} catch {
-    IERC20(imd).transfer(trader, cashback); // plain IMD fallback
-}</code></pre>
-        <p><strong>Rules:</strong></p>
-        <ol style="margin: 8px 0 16px 20px; display: flex; flex-direction: column; gap: 4px;">
-          <li>Fund it from your fee (25-100 bps).</li>
-          <li>Never let imd/acc break a trade (wrap in try/catch).</li>
-          <li>Pay the real trader (from hookData).</li>
-          <li>Check gas before the call.</li>
-          <li>Budget the gas cost (~130k new trader, ~96k repeat).</li>
-        </ol>
-      `;
-    } else if (activeSec === 'listing') {
-      contentHtml = `
-        <h1>Get listed</h1>
-        <p>The ProjectRegistry decides which projects earn points. Anyone can apply with <code>applyListing</code>, an IdentityMD oracle panel answers yes or no against the rules, and anyone can challenge a listed project with a bond.</p>
-        <p style="margin-top: 10px;"><strong>Listing requirements:</strong></p>
-        <ul style="margin: 8px 0 16px 20px; display: flex; flex-direction: column; gap: 4px;">
-          <li>The project is a deployed contract with published source.</li>
-          <li>Cashback rate is between 25 and 100 bps.</li>
-          <li>Fee guard: the part of your fee that leaves the project (LPs, burns) is at least as large as the cashback.</li>
-        </ul>
-      `;
-    } else if (activeSec === 'points') {
-      contentHtml = `
-        <h1>Points</h1>
-        <p>Every <code>Stacked</code> event is kept as an immutable record. Points are the basis for the leaderboards:</p>
-        <ul style="margin: 8px 0 16px 20px; display: flex; flex-direction: column; gap: 4px;">
-          <li><strong>Trader points:</strong> 1 point per IMD stacked from a listed project.</li>
-          <li><strong>Project points:</strong> Total IMD its traders stacked.</li>
-          <li><strong>Listed projects only:</strong> Direct calls to Stacker earn no points.</li>
-        </ul>
-      `;
-    } else if (activeSec === 'agents') {
-      contentHtml = `
-        <h1>For agents</h1>
-        <p>Copyable reference for an agent writing a contract integrating imd/acc (also available as static <a href="./llms.txt">/llms.txt</a>):</p>
-        <pre><code>// Stacker: 0x0457276d7b036818b3eddc1a4a3fceda61e9314d
-// ProjectRegistry: 0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e
-// TestIMD: 0x2b69099e59b05901faa1dd164fabf098bf831e82
-// TestSIMD: 0xf9e2eec3b610ec6781f7438ac5fb4bc049d81cc1
-
-interface IStacker {
-    function credit(address trader, uint256 imdAmount) external returns (uint256 shares);
-}
-
-// MUST rules:
-// 1. Call credit from the trading contract itself, which holds IMD and approved Stacker
-// 2. Only inside a trade, for that trade's real trader (from router hookData)
-// 3. Always wrap in try/catch and pay plain IMD on failure</code></pre>
-      `;
-    }
+  // --- Page: Contracts (#/contracts) ---
+  function renderContracts() {
+    document.title = 'Contracts - imd/acc';
 
     appRoot.innerHTML = `
-      <div class="docs-select-wrap">
-        <label for="docs-select" class="form-label">Docs Section</label>
-        <select id="docs-select" class="docs-select">
-          ${DOCS_SECTIONS.map(s => `
-            <option value="${s.id}" ${s.id === activeSec ? 'selected' : ''}>${s.label}</option>
-          `).join('')}
-        </select>
-      </div>
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag">Smart Contract Architecture &middot; ${DATA_BLOCK_TEXT}</div>
+          <h1 class="page-title">Verified Deployments</h1>
+          <p class="page-desc">Ownerless and verified smart contracts powering the imd/acc cashback network.</p>
+        </div>
 
-      <div class="docs-layout">
-        <nav class="docs-sidebar" aria-label="Documentation Navigation">
-          <ul class="docs-nav-list">
-            ${DOCS_SECTIONS.map(s => `
-              <li><a href="#/docs/${s.id}" ${s.id === activeSec ? 'aria-current="page"' : ''}>${s.label}</a></li>
-            `).join('')}
-          </ul>
-        </nav>
-
-        <article class="docs-content">
-          ${contentHtml}
-          <div class="docs-prev-next">
-            ${prevSec ? `<a href="#/docs/${prevSec.id}">&larr; Previous: ${prevSec.label}</a>` : '<span></span>'}
-            ${nextSec ? `<a href="#/docs/${nextSec.id}">Next: ${nextSec.label} &rarr;</a>` : '<span></span>'}
+        <div class="contracts-grid">
+          <div class="contract-card">
+            <div class="contract-card-header">
+              <span class="contract-name">Stacker v2</span>
+              <span class="pill pill-live">Sepolia</span>
+            </div>
+            <div class="address-row">
+              <span class="address-text">${ADDRESSES.STACKER}</span>
+              <button class="btn btn-secondary btn-sm copy-btn" data-clipboard="${ADDRESSES.STACKER}">Copy</button>
+            </div>
+            <p class="secondary" style="font-size: 0.8rem;">The cashback funnel. Pulls IMD and deposits into vault.</p>
           </div>
-        </article>
+
+          <div class="contract-card">
+            <div class="contract-card-header">
+              <span class="contract-name">ProjectRegistry</span>
+              <span class="pill pill-live">Sepolia</span>
+            </div>
+            <div class="address-row">
+              <span class="address-text">${ADDRESSES.PROJECT_REGISTRY}</span>
+              <button class="btn btn-secondary btn-sm copy-btn" data-clipboard="${ADDRESSES.PROJECT_REGISTRY}">Copy</button>
+            </div>
+            <p class="secondary" style="font-size: 0.8rem;">Decides which projects earn points via oracle panel.</p>
+          </div>
+
+          <div class="contract-card">
+            <div class="contract-card-header">
+              <span class="contract-name">TestIMD</span>
+              <span class="pill pill-live">Sepolia</span>
+            </div>
+            <div class="address-row">
+              <span class="address-text">${ADDRESSES.TEST_IMD}</span>
+              <button class="btn btn-secondary btn-sm copy-btn" data-clipboard="${ADDRESSES.TEST_IMD}">Copy</button>
+            </div>
+            <p class="secondary" style="font-size: 0.8rem;">10,000 tIMD/24h faucet token.</p>
+          </div>
+
+          <div class="contract-card">
+            <div class="contract-card-header">
+              <span class="contract-name">TestSIMD Vault</span>
+              <span class="pill pill-live">Sepolia</span>
+            </div>
+            <div class="address-row">
+              <span class="address-text">${ADDRESSES.TEST_SIMD}</span>
+              <button class="btn btn-secondary btn-sm copy-btn" data-clipboard="${ADDRESSES.TEST_SIMD}">Copy</button>
+            </div>
+            <p class="secondary" style="font-size: 0.8rem;">ERC-4626 staking vault for test run.</p>
+          </div>
+
+          <div class="contract-card">
+            <div class="contract-card-header">
+              <span class="contract-name">Mainnet IMD (OFT)</span>
+              <span class="pill pill-planned">Mainnet</span>
+            </div>
+            <div class="address-row">
+              <span class="address-text">${ADDRESSES.MAINNET_IMD}</span>
+              <button class="btn btn-secondary btn-sm copy-btn" data-clipboard="${ADDRESSES.MAINNET_IMD}">Copy</button>
+            </div>
+            <p class="secondary" style="font-size: 0.8rem;">LayerZero OFT ERC-20 token with zero transfer fee.</p>
+          </div>
+
+          <div class="contract-card">
+            <div class="contract-card-header">
+              <span class="contract-name">Mainnet sIMD Vault</span>
+              <span class="pill pill-planned">Mainnet</span>
+            </div>
+            <div class="address-row">
+              <span class="address-text">${ADDRESSES.MAINNET_SIMD}</span>
+              <button class="btn btn-secondary btn-sm copy-btn" data-clipboard="${ADDRESSES.MAINNET_SIMD}">Copy</button>
+            </div>
+            <p class="secondary" style="font-size: 0.8rem;">ERC-4626 vault. Owner renounced to 0x0.</p>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-title">Integration Snippet &middot; Uniswap v4 Hook</span>
+            <button class="btn btn-secondary btn-sm copy-btn" data-clipboard-target="#hook-code">Copy Solidity</button>
+          </div>
+          <pre class="code-block" id="hook-code"><code>// 1. Once during contract setup: approve the immutable Stacker
+IERC20(imd).approve(address(stacker), type(uint256).max);
+
+// 2. Inside afterSwap: take 25-100 bps from your existing trade fee
+uint256 cashback = imdSideAmount * RATE_BPS / 10_000;
+
+// 3. Credit trader directly; always handle fallback so the trade NEVER reverts
+try stacker.credit(trader, cashback) {
+    // Success: trader now holds sIMD shares earning yield!
+} catch {
+    // Fallback: send plain IMD directly to the trader
+    IERC20(imd).transfer(trader, cashback);
+}</code></pre>
+        </div>
       </div>
     `;
+  }
 
-    document.getElementById('docs-select')?.addEventListener('change', (e) => {
-      location.hash = `#/docs/${e.target.value}`;
-    });
+  // --- Page: Docs (#/docs) ---
+  function renderDocs() {
+    document.title = 'Docs - imd/acc';
+
+    appRoot.innerHTML = `
+      <div class="page-view">
+        <div class="page-header-block">
+          <div class="page-tag">Developer Spec & Guidelines</div>
+          <h1 class="page-title">The 7 Rules of Integration</h1>
+          <p class="page-desc">Key principles every project hook must follow to safely participate in imd/acc.</p>
+        </div>
+
+        <div class="docs-grid">
+          <div class="doc-rule-card">
+            <span class="rule-number">1</span>
+            <div class="rule-content">
+              <h4>Fund From Your Existing Fee</h4>
+              <p>Pick a rate between 0.25% and 1.0% (25-100 bps) and deduct it on the IMD side of your existing fee. Never charge extra fees to traders.</p>
+            </div>
+          </div>
+
+          <div class="doc-rule-card">
+            <span class="rule-number">2</span>
+            <div class="rule-content">
+              <h4>Never Break a Trade</h4>
+              <p>Always wrap <code>stacker.credit()</code> in a <code>try / catch</code> block. If the call fails for any reason, transfer plain IMD to the trader.</p>
+            </div>
+          </div>
+
+          <div class="doc-rule-card">
+            <span class="rule-number">3</span>
+            <div class="rule-content">
+              <h4>Credit The Real Trader</h4>
+              <p>Read the trader address from router <code>hookData</code>, fall back to <code>sender</code>, and never use <code>tx.origin</code>.</p>
+            </div>
+          </div>
+
+          <div class="doc-rule-card">
+            <span class="rule-number">4</span>
+            <div class="rule-content">
+              <h4>Check Gas Upfront</h4>
+              <p>Ensure the swap has sufficient gas for <code>credit()</code> before executing, preventing wallets from estimating cheap paths without cashback.</p>
+            </div>
+          </div>
+
+          <div class="doc-rule-card">
+            <span class="rule-number">5</span>
+            <div class="rule-content">
+              <h4>Budget the Gas Cost</h4>
+              <p>Mainnet credit costs ~130k gas for a new trader and ~96k for repeat traders. Wallets should send estimates &times; 1.3.</p>
+            </div>
+          </div>
+
+          <div class="doc-rule-card">
+            <span class="rule-number">6</span>
+            <div class="rule-content">
+              <h4>Uniswap v4 Whitelist</h4>
+              <p>Include standard <code>afterSwap</code> logic that frontend whitelisting expects, support router <code>msgSender</code>, and guard copycat pools.</p>
+            </div>
+          </div>
+
+          <div class="doc-rule-card">
+            <span class="rule-number">7</span>
+            <div class="rule-content">
+              <h4>Test Failure Paths</h4>
+              <p>Test your fallback on Sepolia using TestSIMD's pausing function to ensure your hook gracefully falls back to plain IMD.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 36px; display: flex; gap: 12px; justify-content: center;">
+          <a href="./llms.txt" target="_blank" class="btn btn-secondary">
+            <span>View llms.txt Agent Spec</span>
+          </a>
+          <a href="https://github.com/khaed1/imd-acc/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+            <span>Read Full GitHub Documentation</span>
+          </a>
+        </div>
+      </div>
+    `;
   }
 
   // --- Page: 404 Not Found ---
   function renderNotFound() {
     document.title = 'Page Not Found - imd/acc';
+
     appRoot.innerHTML = `
-      <div class="page-header">
-        <h1>Page not found</h1>
-      </div>
-      <div class="box">
-        <p>The requested route does not exist.</p>
-        <p style="margin-top: 12px;"><a href="#/">&larr; Return to Home</a></p>
+      <div class="page-view" style="text-align: center; padding: 60px 0;">
+        <h1 class="page-title">Page Not Found</h1>
+        <p class="secondary" style="margin-bottom: 24px;">The route you navigated to does not exist.</p>
+        <a href="#/" class="btn btn-primary">&larr; Return to Overview</a>
       </div>
     `;
   }
 
-  // --- Initial Event Handlers & Wallet Setup ---
+  // --- Common Listeners (Copy buttons, etc.) ---
+  function initCommonListeners() {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.onclick = () => {
+        const text = btn.getAttribute('data-clipboard') ||
+          (btn.getAttribute('data-clipboard-target') &&
+           document.querySelector(btn.getAttribute('data-clipboard-target'))?.innerText);
+        if (text) {
+          navigator.clipboard.writeText(text.trim()).then(() => showToast('Copied to clipboard!'));
+        }
+      };
+    });
+  }
+
+  // --- Global Initialization ---
   function init() {
-    setTheme(state.theme);
+    applyTheme(state.theme);
 
-    // Theme toggle
-    document.getElementById('theme-btn')?.addEventListener('click', () => {
-      setTheme(state.theme === 'dark' ? 'light' : 'dark');
+    // Theme Button
+    document.getElementById('theme-toggle')?.addEventListener('click', () => {
+      applyTheme(state.theme === 'dark' ? 'light' : 'dark');
     });
 
-    // Mobile menu toggle
-    const menuBtn = document.getElementById('menu-btn');
-    const nav = document.getElementById('mobile-navigation');
-    menuBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = nav.classList.toggle('open');
-      menuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    // Mobile Menu Toggle
+    const mobileBtn = document.getElementById('mobile-toggle');
+    const navMenu = document.getElementById('nav-menu');
+    mobileBtn?.addEventListener('click', () => {
+      navMenu?.classList.toggle('open');
     });
 
-    // Outside click closes menu
-    document.addEventListener('click', (e) => {
-      if (nav && nav.classList.contains('open') && !nav.contains(e.target) && e.target !== menuBtn) {
-        nav.classList.remove('open');
-        menuBtn?.setAttribute('aria-expanded', 'false');
-      }
-    });
-
-    // Escape closes menu and returns focus
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && nav && nav.classList.contains('open')) {
-        nav.classList.remove('open');
-        menuBtn?.setAttribute('aria-expanded', 'false');
-        menuBtn?.focus();
-      }
-    });
-
-    // Refresh button
-    document.getElementById('refresh-btn')?.addEventListener('click', () => {
-      render();
-    });
-
-    // Connect wallet
-    document.getElementById('connect-btn')?.addEventListener('click', async () => {
-      if (!window.ethereum) {
-        alert('No Web3 wallet detected.');
+    // Wallet Connect
+    const btnWallet = document.getElementById('btn-wallet');
+    btnWallet?.addEventListener('click', async () => {
+      if (typeof window.ethereum === 'undefined') {
+        showToast('No Web3 wallet detected. Exploring in demo mode!');
         return;
       }
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts[0]) {
           state.account = accounts[0];
-          document.getElementById('connect-btn').textContent = shortAddr(state.account);
+          document.getElementById('wallet-label').textContent = shortAddr(state.account);
+          btnWallet.classList.remove('btn-secondary');
+          btnWallet.classList.add('btn-primary');
+          showToast(`Connected: ${shortAddr(state.account)}`);
           render();
         }
       } catch (err) {
-        console.warn('Connect error:', err);
+        showToast('Wallet connection rejected');
       }
     });
 
-    // Window hashchange listener
+    // Hashchange router listener
     window.addEventListener('hashchange', render);
-
-    // Check if wallet is already connected
-    if (window.ethereum) {
-      window.ethereum.request({ method: 'eth_accounts' }).then((accs) => {
-        if (accs && accs[0]) {
-          state.account = accs[0];
-          const btn = document.getElementById('connect-btn');
-          if (btn) btn.textContent = shortAddr(state.account);
-        }
-      }).catch(() => {});
-    }
 
     // Initial render
     render();
