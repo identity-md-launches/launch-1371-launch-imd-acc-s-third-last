@@ -29,7 +29,7 @@ One file per chain: [`listings/sepolia.json`](../listings/sepolia.json) now, `li
 | `name` | Shown on the site. |
 | `fromBlock` | Points count from this block on, never before. |
 | `toBlock` | Optional, set only when a project is delisted: points stop at this block. Earlier points stay. |
-| `rateBps` | The project's cashback rate in basis points, 25 to 100 (0.25% to 1%). |
+| `rateBps` | The cashback rate the project applied with, in basis points, 25 to 100 (0.25% to 1%). The project may change it later within that range (see the checklist). |
 | `beneficiary` | The wallet that holds the project's points, since a hook contract can't receive an airdrop. |
 
 ### Steps
@@ -46,7 +46,7 @@ One file per chain: [`listings/sepolia.json`](../listings/sepolia.json) now, `li
 - [ ] It calls `credit` only inside real trades, never with its own IMD for wallets it picks.
 - [ ] The cashback is the stated `rateBps` of the trade, between 25 and 100.
 - [ ] **Fee guard:** the part of the fee that really leaves the project is at least as large as the cashback (see below).
-- [ ] If its fees can change later, the limits are in the code, and any change stays inside the guard and the range.
+- [ ] If its rate or fees can change later, the limits are in the code: every allowed rate stays between 25 and 100, and every allowed setting keeps the fee guard. A change inside those limits keeps the listing.
 - [ ] It credits the real trader: router `hookData`, else `sender`, never `tx.origin`.
 - [ ] A failed credit never blocks a trade: the trader gets plain IMD instead.
 - [ ] It checks gas up front, so a wallet's gas estimate can't choose a path without cashback.
@@ -73,11 +73,11 @@ A normal trader can't farm points: they pay the whole fee and get back only the 
 
 ### Delisting
 
-If a listed project breaks the rules (changes its rate, fails the guard, credits its own wallets), its entry gets a `toBlock`. Points earned before it stay; later credits earn none. The entry is never deleted, so history stays readable.
+If a listed project breaks the rules (a rate outside 25 to 100, a fee split that fails the guard, credits to its own wallets), its entry gets a `toBlock`. Changing its rate inside the range and the guard is allowed. Points earned before it stay; later credits earn none. The entry is never deleted, so history stays readable.
 
 ### Every credit is checked too
 
-The indexer compares each credit with the trade in the same transaction. A credit at a rate other than `rateBps`, or with no trade on the project's pool in that transaction, earns no points.
+The indexer compares each credit with the trade in the same transaction. A credit outside 25 to 100 bps of that trade, or with no trade on the project's pool in that transaction, earns no points.
 
 ### Who decides the file
 

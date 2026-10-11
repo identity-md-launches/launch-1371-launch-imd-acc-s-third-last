@@ -121,3 +121,9 @@ PLEA is a sell-gated meme token on Uniswap v4 (its own repository, `khaed1/plea`
   - the Challenge tab shows fee + bond (5.5) and the balance; the theme toggle is remembered after a reload; `/llms.txt` is served and matches the deployed contracts.
 - **Small issues, for a later fix:** invalid Apply input (a quote in the name, an `http://` URL, a project that already has an open question) only disables the button, without saying which field is wrong; on wide screens the shorter boxes leave empty space beside the taller ones.
 
+## 14. Rate changes allowed within the range (2026-10-11)
+
+- **Decided by the owner:** IMD's Sepolia change stays: a challenge judges whether the rate in force is within 25-100 bps, not whether it equals the application rate. A listed project may change its rate inside the range.
+- **Condition, for mainnet:** the panel's fee-guard wording adds that if the rate or the fee split can change, the code must keep the guard true for every allowed setting. Otherwise a project could raise its rate past its guard right after listing, during the cooldown.
+- **Docs updated:** points count credits within 25-100 bps of their trade (not equal to the stated rate); changing the rate inside the limits is no reason to delist; the dashboard shows the measured current rate, with the application rate as historical.
+
