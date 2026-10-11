@@ -39,7 +39,7 @@ Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc.
    - a no-answer case clears the application;
    - a challenge PLEA should survive.
    Record the results.
-4. After that: the mainnet Stacker (job 4), an indexer (IMD skill `build-ponder-indexer`) and the mainnet dashboard, the mainnet registry (bond 20 IMD, cooldown 7 days), the multichain route (Robinhood Chain first: `RemoteStacker` + `StackReceiver` on IMD's LayerZero OFT), and the v2 ETH route when a project needs it.
+4. After that: the mainnet Stacker (job 4), an indexer (IMD skill `build-ponder-indexer`) and the mainnet dashboard, the mainnet registry (bond 20 IMD, cooldown 7 days; bring IMD's Sepolia fixes into `main`, with my OK, and add to the panel's feeGuard wording: "if the rate or the fee split can change, the code must keep this true for every allowed setting"), the multichain route (Robinhood Chain first: `RemoteStacker` + `StackReceiver` on IMD's LayerZero OFT), and the v2 ETH route when a project needs it.
 
 ## Useful facts
 - **IMD:** docs https://imd.fun/docs/llms.txt · API https://api.imd.fun · free `POST /requests/import` and `POST /requests/check` · jobs are paid from `0xf8ad…cdc7`. Launch chains: Sepolia, Ethereum, Robinhood Chain.
@@ -58,7 +58,7 @@ Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc.
 
 ## Rules
 - **Explain simply.** When I need to choose, recommend one option. Ask before paying for any job.
-- **Don't change agreed numbers** without asking me: cashback 0.25%–1% chosen by each project; the fee guard; points = 1 per IMD stacked by a listed project; faucet amounts; the multichain tip up to 2% over 12 hours; the registry settings above.
+- **Don't change agreed numbers** without asking me: cashback 0.25%–1% chosen by each project, which a listed project may change within that range if its code keeps the range and the fee guard for every allowed setting (decided 2026-10-11); the fee guard; points = 1 per IMD stacked by a listed project; faucet amounts; the multichain tip up to 2% over 12 hours; the registry settings above.
 - **Keys:** never print or commit `TESTNET_KEY`; never ask me for a mainnet key.
 - **PLEA** (`khaed1/plea`, `khaed1/plea-site`) belongs to the other session: read only, don't push.
 - **PondPad** (branch `claude/bold-gauss-qhlw86` in `khaed1/claude`) is read-only. Never commit its code.

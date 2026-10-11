@@ -46,8 +46,8 @@ Anyone can call `credit` with their own IMD. That is just staking for someone, a
 
 The question names the Stacker, the project, the chain and the registry, the stated rate and beneficiary, and the applicant's name and URL as untrusted text. It asks for **true only if every rule holds**, judged from the verified source and on-chain state:
 - **trading:** a trading venue that calls `credit` only while executing a trade, for that trade's trader, with IMD from that trade's fees;
-- **rate:** the stated rate, between 25 and 100 bps, and if the rate can change, the code keeps it in that range;
-- **feeGuard:** the parts of the fee that leave for good are at least the cashback;
+- **rate:** at application, the stated rate is the one in force and lies between 25 and 100 bps; at a challenge, the rate in force lies between 25 and 100 bps (the application rate is historical, as deployed on Sepolia); if the rate can change, the code keeps it in that range;
+- **feeGuard:** the parts of the fee that leave for good are at least the cashback. For mainnet, the wording adds: if the rate or the fee split can change, the code must keep this true for every allowed setting;
 - **beneficiary:** the project's owner, or a wallet its verified source or official website names as its team or treasury. This stops someone from applying for another team's project with their own wallet as beneficiary;
 - **evidence:** the verified source on the chain's explorer; unverified code means false.
 
@@ -116,9 +116,10 @@ This history drives the leaderboards. If imd/acc takes off, it's the basis for a
 - **No contract change.** The Stacker never checked the rate: it stakes whatever amount the project sends. The rate is a listing rule.
 - **Points stay "1 per IMD stacked".** A project with a higher rate gives its traders more cashback and so more points. Points stay tied to real IMD that reached traders, which is easy to verify for any kind of project.
 - **The guard against farming.** A project owner who trades with themselves gets back the cashback and their own share of the fee. So the part of the fee that really leaves the project (to liquidity providers, burns, prizes) must be at least as large as the cashback. Then farming points always costs more than it brings back. PLEA: 0.5% cashback, 0.75% to liquidity, burn and prizes.
-- **Listing.** Each listing states the rate (`rateBps`, 25 to 100). The listing check (the list file now, the ProjectRegistry panel later) reads the project's verified code to confirm the rate and the guard.
-- **Indexer.** It compares each credit with the swap in the same transaction and flags credits that don't match the stated rate; those earn no points.
-- **Dashboard.** Each project's rate is shown next to its name, so traders can compare.
+- **Listing.** Each listing records the rate the project applied with (`rateBps`, 25 to 100). The listing check (the list file, or the ProjectRegistry panel) reads the project's verified code to confirm the rate and the guard.
+- **Rate changes (decided 2026-10-11).** A listed project may change its rate within 25 to 100 bps and stays listed, provided its code enforces that range and keeps the fee guard true for every rate and fee split it allows. The panel checks this at application and at any challenge. Why: points are 1 per IMD that really reached traders, so a rate change inside the range fakes nothing, and delisting a project for an honest change would cost it its listing period and a new application. The condition closes the one gap: without it, a project could raise its rate past its guard right after listing, during the cooldown when nobody can challenge it.
+- **Indexer.** It compares each credit with the swap in the same transaction. A credit outside 25 to 100 bps of that trade, or with no trade on the project's pool, earns no points.
+- **Dashboard.** Each project shows its current rate, measured from its recent credits against their trades, with the application rate marked as historical, so a project that listed at 1% and later dropped to 0.25% can't mislead traders.
 - **Gas.** At 0.25%, a credit's gas (about 2¢ for a new trader today) is outweighed by the cashback on trades above about $10, against $5 at 0.5%.
 
 ## Project points and the dashboard
@@ -237,7 +238,7 @@ Side benefit: POOL4 burns a cut of IMD on its trades, so every flush also burns 
 - **Gas:** v1 deposits on every credit. Batching comes in v2 with the ETH route.
 - **Build:** an IMD `evm_contracts` launch, shipped before PLEA so PLEA could reuse its addresses.
 - **Points:** listed projects only, from their `fromBlock` (see above). 1 point per IMD stacked.
-- **Cashback rate:** 0.25% to 1% of each trade, chosen by each project and funded from its existing fees (was a fixed 0.5% until 2026-10-11; see above).
+- **Cashback rate:** 0.25% to 1% of each trade, chosen by each project and funded from its existing fees (was a fixed 0.5% until 2026-10-11; see above). A listed project may change its rate within that range if its code keeps the range and the fee guard for every allowed setting (decided 2026-10-11).
 - **Mainnet Stacker (2026-10-11):** the lean version in this repository: per-project totals on chain, per-trader figures from events. The constructor checks the vault and approves it only where the vault has code, so IMD's empty-chain rehearsal passes.
 - **Dashboard (2026-10-11):** points, leaderboards and each trader's cashback, value and yield come from the events plus live vault reads, served by an indexer.
 - **ProjectRegistry (2026-10-11):** anyone may apply or challenge; one registry per chain; a defended challenge pays the bond to the project's beneficiary, a lost one returns it; no application fee beyond the oracle fee. First on Sepolia test run 2 with PLEA.
