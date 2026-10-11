@@ -153,7 +153,7 @@
     }
   }
 
-  // --- Web3 Transaction Handler (1.3x Gas Estimate) ---
+  // --- Web3 Transaction Handler (1.3x Gas Margin) ---
   async function sendTxWithGas(txParams) {
     if (!window.ethereum) throw new Error('No Web3 wallet available');
     const from = state.account || (await window.ethereum.request({ method: 'eth_accounts' }))[0];
@@ -168,7 +168,7 @@
       const gasWithMargin = Math.ceil(estNum * 1.3);
       tx.gas = '0x' + gasWithMargin.toString(16);
     } catch (e) {
-      tx.gas = '0x4c4b40'; // Fallback
+      tx.gas = '0x4c4b40'; // Safe fallback
     }
 
     return await window.ethereum.request({
@@ -198,14 +198,15 @@
       }
     });
 
-    // Close mobile navigation menu
+    // Close mobile nav if open
     const navMenu = document.getElementById('nav-menu');
     if (navMenu) navMenu.classList.remove('open');
+    document.getElementById('mobile-toggle')?.setAttribute('aria-expanded', 'false');
 
     // Route Dispatch
     if (route === '/') {
       renderHome();
-    } else if (route === '/stack' || route === '/app') {
+    } else if (route === '/stack') {
       renderStack();
     } else if (route === '/calculator') {
       renderCalculator();
@@ -226,17 +227,12 @@
       renderNotFound();
     }
 
-    // Scroll to top and set page focus
-    window.scrollTo(0, 0);
-    const h1 = document.querySelector('main h1');
-    if (h1) {
-      h1.setAttribute('tabindex', '-1');
-      h1.focus();
-    }
+    // Scroll cleanly to top (without triggering artificial focus outlines)
+    window.scrollTo({ top: 0, behavior: 'instant' });
     initCommonListeners();
   }
 
-  // --- Page: Home (#/) ---
+  // --- Page: Overview / Home (#/) ---
   function renderHome() {
     document.title = 'imd/acc · Trading Cashback in Staked IMD';
 
@@ -351,7 +347,7 @@
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
             <a href="#/stack" class="btn btn-primary btn-sm">Your Stack Console</a>
             <a href="#/calculator" class="btn btn-secondary btn-sm">Launch Calculator</a>
-            <a href="#/apply" class="btn btn-secondary btn-sm">Apply for Listing</a>
+            <a href="#/projects" class="btn btn-secondary btn-sm">View Projects</a>
           </div>
         </div>
       </div>
@@ -360,7 +356,7 @@
 
   // --- Page: Stack & Test Tools (#/stack) ---
   function renderStack() {
-    document.title = 'Stack & Tools - imd/acc';
+    document.title = 'Stack - imd/acc';
     const b = state.mockBalances;
 
     appRoot.innerHTML = `
@@ -470,12 +466,11 @@
       </div>
     `;
 
-    // Hook Tool Actions
     document.getElementById('btn-faucet')?.addEventListener('click', async () => {
       try {
         await sendTxWithGas({
           to: ADDRESSES.TEST_IMD,
-          data: '0xde5f72fd' // faucet()
+          data: '0xde5f72fd'
         });
         showToast('Faucet transaction sent on Sepolia!');
       } catch (e) {
@@ -917,7 +912,6 @@
       </div>
     `;
 
-    // Apply Form Validation Handlers
     function validate(id, val) {
       val = (val || '').trim();
       if (id === 'project') {
@@ -1306,7 +1300,7 @@ try stacker.credit(trader, cashback) {
     `;
   }
 
-  // --- Common Listeners (Copy buttons, etc.) ---
+  // --- Common Listeners ---
   function initCommonListeners() {
     document.querySelectorAll('.copy-btn').forEach(btn => {
       btn.onclick = () => {
@@ -1320,11 +1314,11 @@ try stacker.credit(trader, cashback) {
     });
   }
 
-  // --- Global Initialization ---
+  // --- Global Init ---
   function init() {
     applyTheme(state.theme);
 
-    // Theme Button
+    // Theme Toggle
     document.getElementById('theme-toggle')?.addEventListener('click', () => {
       applyTheme(state.theme === 'dark' ? 'light' : 'dark');
     });
@@ -1332,8 +1326,17 @@ try stacker.credit(trader, cashback) {
     // Mobile Menu Toggle
     const mobileBtn = document.getElementById('mobile-toggle');
     const navMenu = document.getElementById('nav-menu');
-    mobileBtn?.addEventListener('click', () => {
-      navMenu?.classList.toggle('open');
+    mobileBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = navMenu?.classList.toggle('open');
+      mobileBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (navMenu?.classList.contains('open') && !navMenu.contains(e.target) && !mobileBtn?.contains(e.target)) {
+        navMenu.classList.remove('open');
+        mobileBtn?.setAttribute('aria-expanded', 'false');
+      }
     });
 
     // Wallet Connect
@@ -1358,7 +1361,7 @@ try stacker.credit(trader, cashback) {
       }
     });
 
-    // Hashchange router listener
+    // Hashchange listener
     window.addEventListener('hashchange', render);
 
     // Initial render
