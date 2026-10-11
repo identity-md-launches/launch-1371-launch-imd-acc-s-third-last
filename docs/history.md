@@ -103,3 +103,11 @@ PLEA is a sell-gated meme token on Uniswap v4 (its own repository, `khaed1/plea`
   - The adapt step also wrote a draft `site/` (plain JS); the site job replaces it.
 - **Checked here:** IMD's final tree builds and all 157 tests pass, including the fork tests against live mainnet, the live Sepolia pair and the real Intake v2.
 
+## 12. Sepolia test run 2 live (2026-10-11)
+
+- **Launch #1294** (`9ee0316d-7266-4cf0-89aa-cff5f4f7610d`) went live at Sepolia block 11,891,109, tx `0x7a2d1e791756e5ce9a28408c8f141ccf6b669e824e54095d0328c31d364b9a60` (one transaction through IMD's factory, 39.8M gas). All admission checks passed (provenance, findings, independent review, reproducible bytecode, manifest, protected invariants).
+  - Stacker `0x0457276d7b036818b3eddc1a4a3fceda61e9314d`
+  - ProjectRegistry `0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e`
+- **Checked on chain:** the delivered repository at `ef39dd18` is the same tree I tested (157 tests pass, forks included), and both contracts' runtime code equals that build once immutables are masked (Stacker 2,362 bytes, registry 20,725). Stacker: `IMD` = TestIMD, `SIMD` = TestSIMD, nothing stacked yet, no vault allowance until the first credit. Registry: Intake v2, fee token `0x44a1…f89a`, `stacker` = the new Stacker, signer `0x5598…2982`, `questionChainId` 1, bond 5e18, cooldown 3600, `ORACLE_FEE()` 0.5e18, panel 15/11, expiry 1 day. TestSIMD open, its asset TestIMD.
+- **Website job** (`jobs/6-sepolia-v2-site.md`) passes `/requests/check` as a `job.continue` of the launch job, with no blockers; IMD plans `build-website` then `design-critic`.
+
