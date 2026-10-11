@@ -68,13 +68,17 @@ Only the bonds of open challenges, never anything else, and never an approval le
 
 ### Settings
 
+Confirmed by the owner on 2026-10-11, for both chains.
+
 | Setting | Sepolia test run 2 | Mainnet |
 |---|---|---|
 | Oracle fee | 0.5 test IMD (anyone can mint it) | 0.5 IMD |
-| Challenge bond | 5 test IMD | to decide |
-| Challenge cooldown | 1 hour | to decide (for example 7 days) |
+| Challenge bond | 5 test IMD (`5e18`) | 20 IMD (`20e18`, about $170 at $8.58 per IMD) |
+| Challenge cooldown | 1 hour (`3600`) | 7 days (`604800`) |
 | Panel | 15 seats, 11 agree | same |
 | Open question expires | after 1 day | same |
+
+**Why these numbers.** On Sepolia the bond only tests the flow (test IMD is free), and a 1-hour cooldown lets the trial run its challenge step on the same day. On mainnet, 20 IMD (40 times the oracle fee) makes challenging a project just to annoy it costly, since a defended challenge pays the bond to the project, while staying within reach of someone who has really caught a project breaking the rules. Seven days gives a listed or defended project a quiet week; a project that starts cheating can still be challenged within a week, and its points stop from the block it is delisted.
 
 ### Known limits
 - **Blocking by spam:** someone can keep a project's application slot busy by applying for it with wrong terms, one question at a time. Each try costs them 0.5 IMD and lasts until the panel answers (minutes).
@@ -237,13 +241,13 @@ Side benefit: POOL4 burns a cut of IMD on its trades, so every flush also burns 
 - **Mainnet Stacker (2026-10-11):** the lean version in this repository: per-project totals on chain, per-trader figures from events. The constructor checks the vault and approves it only where the vault has code, so IMD's empty-chain rehearsal passes.
 - **Dashboard (2026-10-11):** points, leaderboards and each trader's cashback, value and yield come from the events plus live vault reads, served by an indexer.
 - **ProjectRegistry (2026-10-11):** anyone may apply or challenge; one registry per chain; a defended challenge pays the bond to the project's beneficiary, a lost one returns it; no application fee beyond the oracle fee. First on Sepolia test run 2 with PLEA.
+- **Registry settings (2026-10-11):** panel 15 seats with 11 agreeing, open questions expire after 1 day; Sepolia bond 5 test IMD and cooldown 1 hour; mainnet bond 20 IMD and cooldown 7 days ([settings](#settings)).
 - **Multichain (2026-10-11):** per-trader waiting balances on other chains, delivered to Ethereum through IMD's bridge, paid by a tip of up to 2% that rises over 12 hours.
 
 ## Open questions
 
 1. **Is an sIMD vault planned on Robinhood Chain?** IMD exists there (`0x5f7bb59365ce557c26dbcaa4ee9d39a4b95b7127`, the same OFT), but no vault does. **Recommendation:** ask the IMD team whether they will deploy StakedIMD there; until then PondPad pays its cashback as plain IMD. A Stacker on Robinhood Chain is a one-contract launch once a vault exists.
 2. **Should sells get cashback too, or buys only?** (PLEA pays it on every trade.) **Recommendation:** both. Every trade pays a fee, so every trade funds its 0.5%; wash trading for points still loses money, because the fees on a round trip are larger than the cashback.
-3. **Mainnet registry settings:** the challenge bond and cooldown (Sepolia uses 5 test IMD and 1 hour). There is no application fee beyond the 0.5 IMD oracle fee.
 
 Known and harmless: a credit mints sIMD to the trader, and the vault's one-block hold then stops that trader from redeeming in the same block. Anyone can already do this by depositing into the vault for someone, so the Stacker adds nothing new.
 
