@@ -109,5 +109,5 @@ PLEA is a sell-gated meme token on Uniswap v4 (its own repository, `khaed1/plea`
   - Stacker `0x0457276d7b036818b3eddc1a4a3fceda61e9314d`
   - ProjectRegistry `0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e`
 - **Checked on chain:** the delivered repository at `ef39dd18` is the same tree I tested (157 tests pass, forks included), and both contracts' runtime code equals that build once immutables are masked (Stacker 2,362 bytes, registry 20,725). Stacker: `IMD` = TestIMD, `SIMD` = TestSIMD, nothing stacked yet, no vault allowance until the first credit. Registry: Intake v2, fee token `0x44a1…f89a`, `stacker` = the new Stacker, signer `0x5598…2982`, `questionChainId` 1, bond 5e18, cooldown 3600, `ORACLE_FEE()` 0.5e18, panel 15/11, expiry 1 day. TestSIMD open, its asset TestIMD.
-- **Website job** (`jobs/6-sepolia-v2-site.md`) passes `/requests/check` as a `job.continue` of the launch job, with no blockers; IMD plans `build-website` then `design-critic`.
+- **Website job** (`jobs/6-sepolia-v2-site.md`) passed `/requests/check` as a `job.continue` of the launch job, with no blockers, and was paid at 10:56 UTC: order `59b67d04-84cf-4cf1-aba6-ebb08f69f983`, job `a9afb834-83e0-43a4-97ca-1ecdfc6989b0`, the same text as the brief; IMD runs `build-website` then `design-critic`.
 
