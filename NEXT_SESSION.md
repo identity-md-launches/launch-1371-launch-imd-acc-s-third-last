@@ -43,7 +43,7 @@ Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc.
 ## Useful facts
 - **IMD:** docs https://imd.fun/docs/llms.txt · API https://api.imd.fun · free `POST /requests/import` and `POST /requests/check` · jobs are paid from `0xf8ad…cdc7`. Launch chains: Sepolia, Ethereum, Robinhood Chain.
 - **Request bodies pin a commit** (`baseCommit`). After changing a job text or the code, regenerate the JSON and re-run import + check.
-- **Hosting:** set it only with the `ipfs` field; never ask the agent to host or deploy in a job text.
+- **Hosting:** set it only with the `ipfs` field; never ask the agent to host or deploy in a job text. IMD hosts sites itself at `<label>.sites.imd.fun` (PLEA: https://plea-make-your-case.sites.imd.fun/#/), so no GitHub Pages. Pages use hash routes (`#/…`); real static files such as `/llms.txt` are served as they are. `github: true` only delivers the source to the project's repository.
 - **Workflow wording that passed the check:** say plainly "deploy two smart contracts on Sepolia", say what they do, and in `context` that publishing the website is approved and the platform does it, not the builders.
 - **Intake v2** `0xa43e6f75ee006411f79ac1c84120606c2330de82` (Ethereum, Sepolia, Robinhood Chain):
   - `requestWithFailure`; callback `0x510379c7`, failure `0xa7980e31`; callback gas 200k on mainnet, 1M on Sepolia;
