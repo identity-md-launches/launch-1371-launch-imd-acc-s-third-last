@@ -187,6 +187,7 @@ src/ProjectRegistry.sol   the project list decided by an IdentityMD oracle panel
 src/oracle/               the oracle attestation verifier (EIP-712), shared with PLEA
 test/                     Foundry tests: unit, edge cases, fuzz, invariants, deployment, mainnet and Sepolia forks
   mocks/                  TestIMD, TestSIMD (a copy of StakedIMD), a mock Intake: test doubles only
+  trial/                  SelfCredit: the registry trial's negative case (Sepolia only, never listed)
 lib/                      forge-std, OpenZeppelin and Solady files, vendored
 launch.json               the IMD launch manifest: one Stacker, mainnet IMD and sIMD
 foundry.toml              solc 0.8.26, cancun, 10,000 optimizer runs, bytecode_hash none
