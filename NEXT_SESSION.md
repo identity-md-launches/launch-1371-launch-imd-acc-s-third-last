@@ -22,7 +22,8 @@ Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc.
 - **Waiting for my OK to pay** (both pass `POST /requests/check` with no blockers):
   1. **Sepolia test run 2**, `jobs/requests/5-sepolia-v2-workflow.json` (`workflow.open`, branch `sepolia` at `724d1fc`): deploys the new Stacker and the ProjectRegistry on the live test pair, then a test page (label `imd-acc-sepolia-v2`) that reads the registry and has Apply/Challenge forms. Texts: `jobs/5-sepolia-v2-launch.md` and `jobs/5-sepolia-v2-site.md`. Alternative with IMD's full four-specialist audit (contracts only): `5-sepolia-v2-launch-only.json`.
   2. **Mainnet Stacker**, `jobs/requests/4-mainnet-launch.json` (`launch.open`, chain 1, `main` at `e3e54a6`): the Stacker only, with the full audit. It comes after the Sepolia trial.
-- **New numbers I haven't confirmed yet:** Sepolia registry bond 5 test IMD, cooldown 1 hour, panel 15 seats / 11 agree, open question expires after 1 day. Mainnet bond and cooldown are still to decide.
+- **Registry settings, confirmed by me (2026-10-11):** panel 15 seats / 11 agree, open question expires after 1 day; Sepolia bond 5 test IMD, cooldown 1 hour; mainnet bond 20 IMD (`20e18`), cooldown 7 days (`604800`).
+- **Test run 2 approved (2026-10-11):** I'm submitting `5-sepolia-v2-workflow.json` (the workflow, not the launch-only shape).
 
 ## Next, once I've paid for test run 2
 1. Follow the order (`GET /requests/paid-by/0xf8ad3f88b0e0d177aa8c5e6be1e13410fd41cdc7`, then the workflow and job status). When it's live:
@@ -36,7 +37,7 @@ Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc.
    - a no-answer case clears the application;
    - a challenge PLEA should survive.
    Record the results.
-4. After that: the mainnet Stacker (job 4), an indexer (IMD skill `build-ponder-indexer`) and the mainnet dashboard, the mainnet registry (bond and cooldown to decide), the multichain route (Robinhood Chain first: `RemoteStacker` + `StackReceiver` on IMD's LayerZero OFT), and the v2 ETH route when a project needs it.
+4. After that: the mainnet Stacker (job 4), an indexer (IMD skill `build-ponder-indexer`) and the mainnet dashboard, the mainnet registry (bond 20 IMD, cooldown 7 days), the multichain route (Robinhood Chain first: `RemoteStacker` + `StackReceiver` on IMD's LayerZero OFT), and the v2 ETH route when a project needs it.
 
 ## Useful facts
 - **IMD:** docs https://imd.fun/docs/llms.txt · API https://api.imd.fun · free `POST /requests/import` and `POST /requests/check` · jobs are paid from `0xf8ad…cdc7`. Launch chains: Sepolia, Ethereum, Robinhood Chain.
@@ -55,7 +56,7 @@ Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc.
 
 ## Rules
 - **Explain simply.** When I need to choose, recommend one option. Ask before paying for any job.
-- **Don't change agreed numbers** without asking me: cashback 0.25%–1% chosen by each project; the fee guard; points = 1 per IMD stacked by a listed project; faucet amounts; the multichain tip up to 2% over 12 hours; the registry settings once I confirm them.
+- **Don't change agreed numbers** without asking me: cashback 0.25%–1% chosen by each project; the fee guard; points = 1 per IMD stacked by a listed project; faucet amounts; the multichain tip up to 2% over 12 hours; the registry settings above.
 - **Keys:** never print or commit `TESTNET_KEY`; never ask me for a mainnet key.
 - **PLEA** (`khaed1/plea`, `khaed1/plea-site`) belongs to the other session: read only, don't push.
 - **PondPad** (branch `claude/bold-gauss-qhlw86` in `khaed1/claude`) is read-only. Never commit its code.

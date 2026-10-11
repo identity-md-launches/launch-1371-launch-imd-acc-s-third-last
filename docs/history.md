@@ -87,3 +87,8 @@ PLEA is a sell-gated meme token on Uniswap v4 (its own repository, `khaed1/plea`
 - **Tests:** 23 unit and fuzz tests, an invariant suite (bonds held, records consistent, listing counts), and a Sepolia fork test against the real Intake v2: an application paid it and registered both callbacks (about 423k gas); a listing answer used 77k gas. All 68 tests pass.
 - **Launch:** the `sepolia` branch's `launch.json` now deploys the Stacker and the registry (bond 5 test IMD, cooldown 1 hour); the test page brief reads the registry and has Apply and Challenge forms.
 
+## 10. Registry settings confirmed, test run 2 approved (2026-10-11)
+
+- **Confirmed by the owner:** panel 15 seats with 11 agreeing, open questions expire after 1 day; Sepolia bond 5 test IMD and cooldown 1 hour, as in the `sepolia` branch's `launch.json`. **Mainnet decided:** bond 20 IMD and cooldown 7 days, for the mainnet registry after the trial ([design notes](design.md#settings)).
+- **Re-checked before paying:** all 68 tests and the 7 fork tests pass (mainnet, Sepolia and the real Intake v2); the three ready requests pass `/requests/check` with no blockers; the pinned commits (`724d1fc`, `e3e54a6`) carry the same code and job texts as the branches; Intake v2 still sells `oracle.request@oracle-1` for 0.5 test IMD (`0x44a1…f89a`) on Sepolia, and the oracle signer is still `0x5598…2982`.
+- **Approved:** Sepolia test run 2 as the workflow (`jobs/requests/5-sepolia-v2-workflow.json`), submitted by the owner.

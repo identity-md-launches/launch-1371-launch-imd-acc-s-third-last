@@ -163,7 +163,7 @@ Rules:
 3. **Indexer and mainnet dashboard:** the events kept in a fast table, then the site with each trader's cashback, points and value, and the leaderboards.
 4. **Multichain:** Robinhood Chain first (PondPad), then Base and Arbitrum. Cashback waits per trader on that chain and goes to Ethereum through IMD's own LayerZero bridge, paid by a small tip ([design](docs/design.md#multichain-cashback-from-other-chains)).
 5. **v2: the ETH route** for projects whose fees are in ETH. `creditETH(trader)` records pending ETH; a public `flush()` swaps the batch to IMD through POOL4 behind a TWAP price guard, deposits it and splits the shares. Built once such a project wants in.
-6. **ProjectRegistry on mainnet**, after the Sepolia trial: the same contract, with mainnet bond and cooldown ([design](docs/design.md#the-projectregistry)).
+6. **ProjectRegistry on mainnet**, after the Sepolia trial: the same contract, with a 20 IMD challenge bond and a 7-day cooldown ([design](docs/design.md#settings)).
 
 Open questions (with recommendations) are in the [design notes](docs/design.md#open-questions): an sIMD vault on Robinhood Chain, and cashback on sells as well as buys.
 
