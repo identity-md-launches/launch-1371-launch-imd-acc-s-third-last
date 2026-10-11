@@ -23,12 +23,14 @@ Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc.
   1. **Sepolia test run 2**, `jobs/requests/5-sepolia-v2-workflow.json` (`workflow.open`, branch `sepolia` at `724d1fc`): deploys the new Stacker and the ProjectRegistry on the live test pair, then a test page (label `imd-acc-sepolia-v2`) that reads the registry and has Apply/Challenge forms. Texts: `jobs/5-sepolia-v2-launch.md` and `jobs/5-sepolia-v2-site.md`. Alternative with IMD's full four-specialist audit (contracts only): `5-sepolia-v2-launch-only.json`.
   2. **Mainnet Stacker**, `jobs/requests/4-mainnet-launch.json` (`launch.open`, chain 1, `main` at `e3e54a6`): the Stacker only, with the full audit. It comes after the Sepolia trial.
 - **Registry settings, confirmed by me (2026-10-11):** panel 15 seats / 11 agree, open question expires after 1 day; Sepolia bond 5 test IMD, cooldown 1 hour; mainnet bond 20 IMD (`20e18`), cooldown 7 days (`604800`).
-- **Test run 2 paid (2026-10-11, 08:53 UTC):** through the imd.fun form from GitHub commit `724d1fc`. The form opened a `launch.open` (contracts only, full audit), not the workflow: order `832b34b4-0687-4de3-a7aa-62ae9dcd5d50`, job `0b69e5bd-873f-4bcf-9e02-ef1a00a4b2f5`. **No test page job for now** (my decision): don't prepare or propose `jobs/5-sepolia-v2-site.md` unless I ask. Check the job every 30 minutes.
+- **Test run 2 paid (2026-10-11, 08:53 UTC):** through the imd.fun form from GitHub commit `724d1fc`. The form opened a `launch.open` (contracts only, full audit), not the workflow: order `832b34b4-0687-4de3-a7aa-62ae9dcd5d50`, job `0b69e5bd-873f-4bcf-9e02-ef1a00a4b2f5`. Check the job every 30 minutes.
+- **Test page job ready, not paid:** `jobs/6-sepolia-v2-site.md` (`job.continue` on the launch job, `build-website`; IMD adds a `design-critic` review; site label `imd-acc-sepolia-v2`; request `jobs/requests/6-sepolia-v2-site.json`). imd.fun's look (IBM Plex Mono, its colour tokens, square corners, light and dark), compact text sizes, and the Impeccable rules (impeccable.style). It can only be submitted once the launch job has finished; the text passed `/requests/check` as a `job.open` probe with no blockers. I submit it through the imd.fun form.
 
 ## Next, once I've paid for test run 2
 1. Follow the order (`GET /requests/paid-by/0xf8ad3f88b0e0d177aa8c5e6be1e13410fd41cdc7`, then the workflow and job status). When it's live:
    - check the two contracts on chain (code matches our build, wiring, immutables, the registry's settings);
    - add both addresses to the README Deployments table, `docs/history.md` and this file;
+   - once I've paid the test page job, check the page in a browser (both themes, 360/768/1280 px).
 2. Give the addresses to the PLEA session. Its next version credits through the new Stacker and then calls `applyListing(hook, "PLEA", sourceUrl, 50, beneficiary)`; the beneficiary must be PLEA's owner or team wallet.
 3. Run the registry trial (steps in `docs/design.md`, "Sepolia trial with PLEA"):
    - PLEA expected yes;
