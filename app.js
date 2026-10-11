@@ -267,7 +267,6 @@
           <div class="pillars-grid">
             <div class="pillar-card">
               <div class="pillar-header">
-                <div class="pillar-icon">💎</div>
                 <h3 class="pillar-title">No New Token</h3>
               </div>
               <p class="pillar-desc">The cashback is pure IMD, staked. There is nothing speculative to buy or manage.</p>
@@ -275,7 +274,6 @@
 
             <div class="pillar-card">
               <div class="pillar-header">
-                <div class="pillar-icon">🔒</div>
                 <h3 class="pillar-title">Zero Custody</h3>
               </div>
               <p class="pillar-desc">imd/acc never holds your tokens. The ERC-4626 vault mints shares directly to your wallet.</p>
@@ -283,7 +281,6 @@
 
             <div class="pillar-card">
               <div class="pillar-header">
-                <div class="pillar-icon">⚡</div>
                 <h3 class="pillar-title">No Extra Fee</h3>
               </div>
               <p class="pillar-desc">Projects pay cashback out of fees they already charge. Traders pay nothing extra on top.</p>
@@ -291,7 +288,6 @@
 
             <div class="pillar-card">
               <div class="pillar-header">
-                <div class="pillar-icon">🏛️</div>
                 <h3 class="pillar-title">Ownerless Contract</h3>
               </div>
               <p class="pillar-desc">The Stacker contract has no admin, no pause, no fee take, and immutable parameters.</p>
@@ -434,7 +430,7 @@
           <!-- Test Tools -->
           <div class="test-tools-box">
             <div class="tool-card">
-              <h4 class="tool-title">🚰 Sepolia Test IMD Faucet</h4>
+              <h4 class="tool-title">Sepolia Test IMD Faucet</h4>
               <p class="tool-desc">Request 10,000 TestIMD per address every 24 hours to test trades and crediting.</p>
               <button class="btn btn-primary btn-sm" id="btn-faucet" style="width: 100%;">
                 <span>Request 10,000 TestIMD</span>
@@ -442,7 +438,7 @@
             </div>
 
             <div class="tool-card">
-              <h4 class="tool-title">⚡ Test "Stack to Myself"</h4>
+              <h4 class="tool-title">Test "Stack to Myself"</h4>
               <p class="tool-desc">Approve TestIMD and call <code>Stacker.credit(self, amount)</code> to test the vault minting path.</p>
               <div class="tool-input-row" style="margin-bottom: 10px;">
                 <input type="number" class="input-text" id="self-stack-amt" value="5" min="1" step="1" placeholder="Amount">
@@ -453,7 +449,7 @@
             </div>
 
             <div class="tool-card" style="background: var(--bg-card);">
-              <h4 class="tool-title">ℹ️ Sepolia Verification Status</h4>
+              <h4 class="tool-title">Sepolia Verification Status</h4>
               <p class="tool-desc" style="margin-bottom: 8px;">Stacker v2 deployed at block <code>11,891,109</code>.</p>
               <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
                 • Vault status: <span style="color: var(--status-live);">Active (Unpaused)</span><br>
