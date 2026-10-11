@@ -91,7 +91,7 @@ Confirmed by the owner on 2026-10-11, for both chains.
 ### Sepolia trial with PLEA
 1. Test run 2 deploys the Stacker and the registry.
 2. PLEA's next version credits through that Stacker and applies at 50 bps with its beneficiary. Expected: yes.
-3. Negative cases: a plain wallet (refused before asking, since it has no code), and a contract that credits its own IMD. Expected: no.
+3. Negative cases: a plain wallet (refused before asking, since it has no code), and a contract that credits its own IMD ([`SelfCredit`](../test/trial/SelfCredit.sol), deployed at `0x3d17…1488`). Expected: no.
 4. A no-answer case, to see the failure callback clear the application.
 5. A challenge against PLEA. Expected: it stays listed and the bond goes to its beneficiary.
 6. The test page shows the registry's state and counts points by its listing periods.
