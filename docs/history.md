@@ -150,16 +150,4 @@ PLEA is a sell-gated meme token on Uniswap v4 (its own repository, `khaed1/plea`
 - **Small issues, not blocking the trial:**
   - The reviewer's finding, reproduced: each refresh (every 60s, every 15s while any question is open) briefly removes the Apply form's panel question, so the page shrinks by about 630px at 360px and jumps; a "no contract code" error loses its text and `aria-invalid` for a moment.
   - With the menu open, Tab reaches the theme and Connect buttons before the menu links.
-
-## 15. Site with separate pages (2026-10-11)
-
-- **Job `b874bae9`** finished at 14:28 UTC ([PR #3](https://github.com/identity-md-launches/launch-1294-deploy-two-smart-contracts/pull/3), commit `cabef0ca`, CID `bafybeiffq7wmu4ar6ezssb4hhb7ehdjpen4btqyfmuqpxayycytvazbyhq`, same address). IMD's design reviewer accepted it with one medium finding: a background refresh briefly removes the panel question and the form errors.
-- **Pages:** Home, Stack, Projects (one page per project), Apply, Leaderboard, Docs (one route per section), a not-found page; a Menu button below 860px.
-- **Checked here in Chromium** (live Sepolia reads, transactions on a local fork with an injected test wallet):
-  - all 14 routes at 360, 768 and 1280px in both themes (84 cases): no horizontal scroll, one h1 each, a page title each ("Projects - imd/acc"), the current page marked, text 11-22px, the top bar one row (55px at 360px), no console errors;
-  - the Menu opens, Escape closes it and returns focus, a link navigates and closes it; deep links and reloads work; back and forward work; focus moves to the page heading;
-  - faucet, approve and stack 100 (Stack and Leaderboard update); every Apply field shows its own error (no code, double quote named, not https, rate outside 25-100, zero beneficiary) and the button says why; a valid application appears on Apply and on the project's page with its registry history and open question;
-  - the reviewer's finding reproduces, small: the panel question was missing in 3 of 150 samples over 30 seconds.
-- **Seen on live Sepolia:** contract `0x3D1778bE5f9E55f0dF35ACAF64A13Efe2FE81488` credited 1 test IMD to `0x4b91…6821` through the new Stacker at block 11,892,116 (likely PLEA's next hook being tried); not listed, so direct.
-- **Small issues for a later fix:** the panel question flicker; a visible focus frame around each page title after navigation; on phones the Last 5 stacks table cuts its columns (it scrolls inside its box with no hint); the copy "0 all projects."
-
+  - Also seen in a second check from the earlier session: a visible focus frame around each page's h1 after navigation (on Home it shows at load); on phones the Last 5 stacks table cuts off its columns (it scrolls inside its box with no hint); the copy "0 all projects." on the Projects page.
