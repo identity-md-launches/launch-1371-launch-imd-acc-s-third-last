@@ -1,0 +1,37 @@
+# imd/acc - Sepolia Test Run 2 Agent Spec
+
+imd/acc pays trading cashback as staked IMD (sIMD).
+A project calls Stacker.credit(trader, amount); the IMD goes into the sIMD vault in the trader's name and a Stacked(project, trader, imd, shares) event records it.
+The ProjectRegistry lists the projects whose credits earn points, decided by an IdentityMD oracle panel.
+
+## Addresses (Sepolia 11155111)
+
+- Stacker: 0x0457276d7b036818b3eddc1a4a3fceda61e9314d
+- ProjectRegistry: 0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e
+- TestIMD: 0x2b69099e59b05901faa1dd164fabf098bf831e82
+- TestSIMD (Vault): 0xf9e2eec3b610ec6781f7438ac5fb4bc049d81cc1
+- Oracle Fee Token: 0x44a1cd38474fb1748400e7deb5f8d786cce3f89a
+- Intake v2: 0xa43e6f75ee006411f79ac1c84120606c2330de82
+
+## Integration Pattern
+
+```solidity
+interface IStacker {
+    function credit(address trader, uint256 imdAmount) external returns (uint256 shares);
+}
+
+// In your pool hook's afterSwap:
+uint256 cashback = imdSideAmount * RATE_BPS / 10_000; // 25-100 bps
+try stacker.credit(trader, cashback) returns (uint256 shares) {
+    // trader holds sIMD shares
+} catch {
+    // Fallback: pay plain IMD so trades never revert
+    IERC20(imd).transfer(trader, cashback);
+}
+```
+
+MUST rules:
+1. Call credit from the trading contract itself, which holds the IMD and approved the Stacker.
+2. Only inside a trade, for that trade's real trader (from hookData).
+3. Rate must be between 25 and 100 bps (0.25% - 1%).
+4. Always wrap in try/catch and pay plain IMD if it fails.
