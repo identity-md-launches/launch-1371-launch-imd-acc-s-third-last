@@ -1,35 +1,61 @@
-Repo: **`khaed1/imd-acc`** (this repository: README, design notes, history, job prompts). If it isn't in your session, attach it with `add_repo` (push access). The imd/acc code IMD built and deployed is public at https://github.com/identity-md-launches/launch-1129-build-imd-acc-sepolia-test (commit `934fb404`, site PR #2 at `7de7d635`). imd/acc no longer lives in the shared notes repo `khaed1/claude` (branch `claude/adoring-goodall-pn3jyz`); its `HANDOFF.md` is mostly PLEA now, so read it only for PLEA details.
+Repo: **`khaed1/imd-acc`** (code, tests, docs, IMD job prompts). If it isn't in your session, attach it with `add_repo` (push access). Branches: **`main`** = the mainnet manifest (`launch.json`: the Stacker only); **`sepolia`** = `main` plus a Sepolia `launch.json` (Stacker + ProjectRegistry). Work on `main`, then merge `main` into `sepolia` so they differ only in `launch.json`. The first Sepolia launch's code is at https://github.com/identity-md-launches/launch-1129-build-imd-acc-sepolia-test (reference only). `khaed1/claude`'s `HANDOFF.md` is PLEA's now; read it only for PLEA details.
 
-You're working on **imd/acc**, a project I'm building on the IMD swarm (imd.fun). A separate session on my other account keeps working on **PLEA**, imd/acc's first integration, so don't change PLEA; just use it as the live example. Read `README.md` first, then `docs/design.md` and `docs/history.md`. Contracts: `src/Stacker.sol` (mainnet version) with Foundry tests in `test/`.
+You're working on **imd/acc**, a project I'm building on the IMD swarm (imd.fun). A separate session on my other account works on **PLEA**, imd/acc's first integration: don't change PLEA, use it as the live example.
 
 ## imd/acc in brief
-Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc. A participating project sends a share of each trade (0.25%–1%, its choice; PLEA uses 0.5%), taken from fees it already charges, to the trader as sIMD. It does this through one shared, ownerless **`Stacker.credit(trader, imdAmount)`**, which pulls the IMD from the project and calls `sIMD.deposit(amount, trader)`, so the vault mints shares straight to the trader. No new token and no cut. Every `Stacked(project, trader, imd, shares)` event is kept as **points** (trader and project), the basis for leaderboards and maybe a later airdrop (nothing promised). Only credits from **listed projects** earn points, from the block they were listed; anyone else's credits show as "direct, no points".
+Trading cashback paid in **staked IMD (sIMD)**, inspired by TokenWorks' btc/acc. A project sends **0.25%–1% of each trade** (its choice; PLEA uses 0.5%), out of fees it already charges, to the trader as sIMD through one shared, ownerless **`Stacker.credit(trader, imdAmount)`**: it pulls the IMD from the project and calls `sIMD.deposit(amount, trader)`, so the vault mints shares straight to the trader. No new token, no cut. Every `Stacked(project, trader, imd, shares)` event is a record; **points** = 1 per IMD stacked, counted only for **listed** projects inside their listing periods. Listing is decided by the ownerless **ProjectRegistry**: anyone applies or challenges, and an IdentityMD oracle panel answers yes or no (Intake v2).
 
-## Where it stands (2026-10-11)
-- **Live on Sepolia, launch #1129** (block 11,874,601): TestIMD `0x2b69099e59b05901faa1dd164fabf098bf831e82` (`faucet()`: 10,000 tIMD per address per 24h), TestSIMD `0xf9e2eec3b610ec6781f7438ac5fb4bc049d81cc1` (owner `0x4b91…6821` can pause it), **Stacker `0x293c7134ab8f6bf1d8ff44ed806575f8f1baf477`**.
-- **Test page:** https://imd-acc-sepolia-test-run.site.identitymd.eth.limo (site job `5530dde0-f0f2-45c2-b18d-ea718fc458de`, still the project's newest job; `projects.json` is still empty).
-- **PLEA v10's hook** `0x3d4CcAc329010b8beA3b14498d9a45EAB00c68Cc` (block 11,885,872) credits 0.5% of every PLEA/IMD buy and sell inside the same swap. Stacker totals at block 11,889,292: 101.27 tIMD, 0.1674 from PLEA.
-- **Two jobs ready, waiting for my OK to pay** (both pass `POST /requests/check` with no blockers; exact bodies in `jobs/requests/`):
-  1. `jobs/3-list-plea.md`: `job.continue` of `5530dde0` that lists PLEA in `projects.json` (tested locally against live Sepolia).
-  2. `jobs/4-mainnet-launch.md`: `launch.open` on chain 1 deploying only the lean `Stacker(IMD, sIMD)` from **this repository** (`src/Stacker.sol`, `launch.json`), with IMD's full audit plan. 42 tests pass, plus 3 mainnet-fork tests (`ETH_RPC_URL=… forge test --mc MainnetFork`). Fork gas: deploy 446k, new trader 130k, repeat 96k.
+## Read, in this order
+1. `README.md`: overview, contracts, deployments, points, integration rules, roadmap.
+2. `docs/design.md`: every decision, with the reasons. Key sections: cashback rate and fee guard; project points and the dashboard; **The ProjectRegistry**; multichain; who pays the gas; settings; open questions.
+3. `docs/listing.md`: how a project gets listed (registry, or a list file where no registry runs yet).
+4. `docs/history.md`: what happened, sections 1–9, with transactions and checks.
+5. `src/Stacker.sol`, `src/ProjectRegistry.sol`, `src/oracle/OracleAttestation.sol`, and `test/`.
+6. `jobs/` (IMD job prompts, numbered) and `jobs/requests/` (exact request bodies).
 
-- **Sepolia test run 2 ready** (`jobs/5-sepolia-v2-launch.md` + `jobs/5-sepolia-v2-site.md`, request `jobs/requests/5-sepolia-v2-workflow.json`): the new Stacker and the **ProjectRegistry** (`src/ProjectRegistry.sol`, oracle-decided listing on Intake v2) from the `sepolia` branch, on the live TestIMD/TestSIMD, plus a new test page that reads the registry. After it's live, PLEA's next version credits through the Stacker and applies to the registry (first trial; steps in `docs/design.md`).
+## Where we stopped (2026-10-11)
+- **Live on Sepolia, launch #1129:** TestIMD `0x2b69099e59b05901faa1dd164fabf098bf831e82` (faucet 10,000 tIMD/24h), TestSIMD `0xf9e2eec3b610ec6781f7438ac5fb4bc049d81cc1` (owner `0x4b91…6821` can pause it), first Stacker `0x293c7134ab8f6bf1d8ff44ed806575f8f1baf477`, test page https://imd-acc-sepolia-test-run.site.identitymd.eth.limo. PLEA v10's hook `0x3d4C…68Cc` credits through that old Stacker (not listed; `jobs/3-list-plea.md` is obsolete).
+- **Built and tested, not deployed:**
+  - the lean Stacker: no per-trader totals on chain; per-trader figures and points come from events. Fork gas: new trader 130k, repeat 96k;
+  - the ProjectRegistry.
+  - 68 tests pass. The fork tests (`MainnetFork`, `SepoliaFork`, `RegistrySepoliaFork`, the last against the real Intake v2) run with `ETH_RPC_URL` / `SEPOLIA_RPC_URL` set.
+- **Waiting for my OK to pay** (both pass `POST /requests/check` with no blockers):
+  1. **Sepolia test run 2**, `jobs/requests/5-sepolia-v2-workflow.json` (`workflow.open`, branch `sepolia` at `724d1fc`): deploys the new Stacker and the ProjectRegistry on the live test pair, then a test page (label `imd-acc-sepolia-v2`) that reads the registry and has Apply/Challenge forms. Texts: `jobs/5-sepolia-v2-launch.md` and `jobs/5-sepolia-v2-site.md`. Alternative with IMD's full four-specialist audit (contracts only): `5-sepolia-v2-launch-only.json`.
+  2. **Mainnet Stacker**, `jobs/requests/4-mainnet-launch.json` (`launch.open`, chain 1, `main` at `e3e54a6`): the Stacker only, with the full audit. It comes after the Sepolia trial.
+- **New numbers I haven't confirmed yet:** Sepolia registry bond 5 test IMD, cooldown 1 hour, panel 15 seats / 11 agree, open question expires after 1 day. Mainnet bond and cooldown are still to decide.
 
-- **Listing:** `docs/listing.md` (steps, checklist, fee guard, `toBlock` delisting) and the GitHub form `.github/ISSUE_TEMPLATE/listing-application.yml`. The ProjectRegistry (Intake v2, failure callback) is designed in `docs/design.md`; its first trial is on Sepolia with PLEA's next version.
-
-## What's next (ask me before paying for any job)
-1. List PLEA. 2. Mainnet Stacker (PLEA mainnet needs its address). 3. Indexer and mainnet dashboard. 4. Multichain route, Robinhood Chain first (`docs/design.md`, "Multichain"). 5. v2 ETH route, when an ETH-fee project wants in. 6. ProjectRegistry, when more than one or two projects want listing. Open questions are in `docs/design.md`.
+## Next, once I've paid for test run 2
+1. Follow the order (`GET /requests/paid-by/0xf8ad3f88b0e0d177aa8c5e6be1e13410fd41cdc7`, then the workflow and job status). When it's live:
+   - check the two contracts on chain (code matches our build, wiring, immutables, the registry's settings);
+   - add both addresses to the README Deployments table, `docs/history.md` and this file;
+   - check the new test page in a browser.
+2. Give the addresses to the PLEA session. Its next version credits through the new Stacker and then calls `applyListing(hook, "PLEA", sourceUrl, 50, beneficiary)`; the beneficiary must be PLEA's owner or team wallet.
+3. Run the registry trial (steps in `docs/design.md`, "Sepolia trial with PLEA"):
+   - PLEA expected yes;
+   - negative cases expected no;
+   - a no-answer case clears the application;
+   - a challenge PLEA should survive.
+   Record the results.
+4. After that: the mainnet Stacker (job 4), an indexer (IMD skill `build-ponder-indexer`) and the mainnet dashboard, the mainnet registry (bond and cooldown to decide), the multichain route (Robinhood Chain first: `RemoteStacker` + `StackReceiver` on IMD's LayerZero OFT), and the v2 ETH route when a project needs it.
 
 ## Useful facts
-- IMD docs https://imd.fun/docs/llms.txt · API https://api.imd.fun · free checks `POST /requests/import` and `POST /requests/check` · my orders `GET /requests/paid-by/0xf8ad3f88b0e0d177aa8c5e6be1e13410fd41cdc7` (jobs are paid from that wallet).
-- **Hosting:** set it only with the job's `ipfs` field; never ask the agent to host or deploy in the text.
-- Sepolia RPC `https://ethereum-sepolia-rpc.publicnode.com` for state; for old logs use `https://rpc.sepolia.ethpandaops.io` (publicnode prunes them). Ethereum: `https://eth.drpc.org` or `https://ethereum-rpc.publicnode.com`.
-- Foundry: download `foundry_v1.8.3_linux_amd64.tar.gz` from the GitHub release into `~/.foundry/bin` (`foundryup` is blocked). IMD launches need `bytecode_hash = "none"` in `foundry.toml`; keep `[lint] lint_on_build = false`.
-- Test/owner wallet `0x4b91078b2374c956a65f7af0999cae0a935e6821`: its key is in env `TESTNET_KEY` if set. Testnet only.
+- **IMD:** docs https://imd.fun/docs/llms.txt · API https://api.imd.fun · free `POST /requests/import` and `POST /requests/check` · jobs are paid from `0xf8ad…cdc7`. Launch chains: Sepolia, Ethereum, Robinhood Chain.
+- **Request bodies pin a commit** (`baseCommit`). After changing a job text or the code, regenerate the JSON and re-run import + check.
+- **Hosting:** set it only with the `ipfs` field; never ask the agent to host or deploy in a job text.
+- **Workflow wording that passed the check:** say plainly "deploy two smart contracts on Sepolia", say what they do, and in `context` that publishing the website is approved and the platform does it, not the builders.
+- **Intake v2** `0xa43e6f75ee006411f79ac1c84120606c2330de82` (Ethereum, Sepolia, Robinhood Chain):
+  - `requestWithFailure`; callback `0x510379c7`, failure `0xa7980e31`; callback gas 200k on mainnet, 1M on Sepolia;
+  - oracle signer `0x5598aa9146215bc13eb26f2c692ad1461fd32982`;
+  - Sepolia test IMD `0x44a1cd38474fb1748400e7deb5f8d786cce3f89a`, `mint` open to anyone;
+  - **the oracle has no Sepolia RPC:** questions are filed under chain 1 and name Sepolia in the text.
+- **Mainnet:** IMD `0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7` (LayerZero OFT, linked to Arbitrum, Base and Robinhood Chain eid 30416); sIMD `0x9efa934d9fad4ae28c998a40195646b965a97247` (ERC-4626, owner renounced, one-block hold).
+- **RPCs:** Sepolia `https://ethereum-sepolia-rpc.publicnode.com` (state) and `https://rpc.sepolia.ethpandaops.io` (old logs; publicnode prunes them); Ethereum `https://ethereum-rpc.publicnode.com`.
+- **Foundry:** download `foundry_v1.8.3_linux_amd64.tar.gz` from the GitHub release into `~/.foundry/bin` (`foundryup` is blocked). Keep `bytecode_hash = "none"`, 10,000 optimizer runs and `[lint] lint_on_build = false`. Run `forge fmt --check src test` before pushing.
+- **Test wallet:** `0x4b91078b2374c956a65f7af0999cae0a935e6821`; its key is in env `TESTNET_KEY` if set. Testnet only.
 
 ## Rules
-- **Explain simply.** When I need to choose, recommend one option.
-- **Don't change agreed numbers** (cashback 0.25%–1% chosen by each project, the fee guard, faucet amounts, points rules, the multichain tip up to 2% over 12h) without asking me.
+- **Explain simply.** When I need to choose, recommend one option. Ask before paying for any job.
+- **Don't change agreed numbers** without asking me: cashback 0.25%–1% chosen by each project; the fee guard; points = 1 per IMD stacked by a listed project; faucet amounts; the multichain tip up to 2% over 12 hours; the registry settings once I confirm them.
 - **Keys:** never print or commit `TESTNET_KEY`; never ask me for a mainnet key.
 - **PLEA** (`khaed1/plea`, `khaed1/plea-site`) belongs to the other session: read only, don't push.
 - **PondPad** (branch `claude/bold-gauss-qhlw86` in `khaed1/claude`) is read-only. Never commit its code.
