@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Status** | Sepolia test run 2 live (launch #1294): the new Stacker and the on-chain ProjectRegistry. First integration, PLEA, live on the first Stacker (launch #1129). Next: the registry trial with PLEA, then mainnet. |
-| **Test page** | https://imd-acc-sepolia-test-run.site.identitymd.eth.limo |
+| **Test site** | https://imd-acc-sepolia-test-run-2.sites.imd.fun/ (test run 2; the first run's page: https://imd-acc-sepolia-test-run.site.identitymd.eth.limo) |
 | **Contract code** | [`src/Stacker.sol`](src/Stacker.sol) (the cashback funnel) and [`src/ProjectRegistry.sol`](src/ProjectRegistry.sol) (the oracle-decided project list) in this repository. The first Sepolia launch's code, built and deployed by the [IMD swarm](https://imd.fun), is in the [launch-1129 repository](https://github.com/identity-md-launches/launch-1129-build-imd-acc-sepolia-test). |
 
 ## Contents
@@ -92,7 +92,7 @@ Same TestIMD and TestSIMD as above. Code: [launch-1294 repository](https://githu
 | Stacker | [`0x0457276d7b036818b3eddc1a4a3fceda61e9314d`](https://sepolia.etherscan.io/address/0x0457276d7b036818b3eddc1a4a3fceda61e9314d) | The new Stacker: per-project totals on chain, per-trader figures from events. It checks and approves the vault on its first credit. |
 | ProjectRegistry | [`0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e`](https://sepolia.etherscan.io/address/0x3a3bfcb65614292b0ec7c62f9e3a5dac003b920e) | The oracle-decided list. Fee `ORACLE_FEE()` (0.5 test IMD of `0x44a1…f89a`, read live from Intake v2), challenge bond 5 test IMD, cooldown 1 hour, panel 15/11. Challenges use `challengeForBeneficiary(project, reason, expectedBeneficiary)`. |
 
-Test page: to come (job [`jobs/6-sepolia-v2-site.md`](jobs/6-sepolia-v2-site.md)).
+Test site: https://imd-acc-sepolia-test-run-2.sites.imd.fun/ (app at `#/`, docs at `#/docs`, agent text at [`/llms.txt`](https://imd-acc-sepolia-test-run-2.sites.imd.fun/llms.txt)). Built by job [`jobs/6-sepolia-v2-site.md`](jobs/6-sepolia-v2-site.md).
 
 ### Ethereum mainnet (next)
 
