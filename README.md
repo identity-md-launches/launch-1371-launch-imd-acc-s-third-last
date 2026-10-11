@@ -191,7 +191,8 @@ jobs/                     IMD swarm job prompts, in order
   3-list-plea.md          list PLEA on the test page (ready)
   4-mainnet-launch.md     the mainnet Stacker (ready)
   5-sepolia-v2-launch.md  Sepolia test run 2: the new Stacker on the live test pair (ready)
-  5-sepolia-v2-site.md    its test page, built in the same order (ready)
+  5-sepolia-v2-site.md    its test page as a workflow step (replaced by 6)
+  6-sepolia-v2-site.md    the test run 2 page, after the launch: imd.fun look, Impeccable rules (ready)
   requests/               exact request bodies for the ready jobs
 listings/sepolia.json     projects that earn points on the Sepolia test run 2 page
 .github/ISSUE_TEMPLATE/   the "List my project" application form
