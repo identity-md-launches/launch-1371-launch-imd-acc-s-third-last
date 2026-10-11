@@ -204,7 +204,7 @@ jobs/                     IMD swarm job prompts, in order
   5-sepolia-v2-launch.md  Sepolia test run 2: the new Stacker on the live test pair (ready)
   5-sepolia-v2-site.md    its test page as a workflow step (replaced by 6)
   6-sepolia-v2-site.md    the test run 2 site, after the launch: app and docs pages (done, job a9afb834)
-  7-sepolia-v2-site-pages.md  its follow-up: separate pages, form errors, layout (ready)
+  7-sepolia-v2-site-pages.md  its follow-up: separate pages, form errors, layout (paid, job b874bae9)
   requests/               exact request bodies for the ready jobs
 listings/sepolia.json     projects that earn points on the Sepolia test run 2 page
 .github/ISSUE_TEMPLATE/   the "List my project" application form
