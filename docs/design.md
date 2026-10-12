@@ -280,7 +280,7 @@ Known and harmless: a credit mints sIMD to the trader, and the vault's one-block
 | Action | `launch.open` |
 | Launch type | Smart contracts (`evm_contracts`) |
 | `chainId` | `1` (Ethereum mainnet) |
-| Source | `repoUrl` this repository, `khaed1/imd-acc`, at the commit in [`jobs/requests/4-mainnet-launch.json`](../jobs/requests/4-mainnet-launch.json) (checked with `POST /requests/import`) |
+| Source | `repoUrl` this repository, `khaed1/imd-acc`, at the commit in [`jobs/requests/4-mainnet-launch.json`](../jobs/requests/4-mainnet-launch.json) (checked with `POST /requests/import`), on the `launch-mainnet` branch: `main` without `.github/workflows`, because IMD delivers the source with a token that may not create workflow files |
 | Steps | `chain`: `audit-imported-code`, `adapt-contract-project`, `adversarial-review` (IMD adds tests, the manifest, four audit specialists and the judge). A launch from a repository must start with `audit-imported-code` and end with a review. |
 | Contracts | `Stacker` only, `(0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7, 0x9efa934d9fad4ae28c998a40195646b965a97247)` |
 | `owner` | none needed (the Stacker has no owner) |
