@@ -16,6 +16,9 @@ contract SepoliaForkTest is Test {
     TestIMD internal constant IMD = TestIMD(0x2B69099E59b05901faA1DD164fabf098bf831E82);
     TestSIMD internal constant SIMD = TestSIMD(0xF9e2EEc3B610ec6781f7438aC5Fb4bc049d81Cc1);
     address internal constant VAULT_OWNER = 0x4b91078b2374c956A65F7Af0999CaE0a935E6821;
+    /// @dev Test run 2's live Stacker (launch #1294), which PLEA's hook credits through and test
+    /// run 3's registry names.
+    address internal constant LIVE_STACKER = 0x0457276D7b036818B3EddC1A4A3FCeda61e9314d;
 
     Stacker internal stacker;
     address internal project = makeAddr("project");
@@ -46,6 +49,12 @@ contract SepoliaForkTest is Test {
         assertEq(
             IMD.allowance(address(stacker), address(SIMD)), 0, "approval deferred to first credit"
         );
+    }
+
+    /// @dev The live Stacker runs this build byte for byte (same two immutables), so test run 3
+    /// can wire a new registry to it instead of deploying another Stacker.
+    function test_sepolia_liveStackerIsThisBuild() public onlyFork {
+        assertEq(LIVE_STACKER.code, address(stacker).code);
     }
 
     function test_sepolia_creditEventAndTotals() public onlyFork {

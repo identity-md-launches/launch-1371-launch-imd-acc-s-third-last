@@ -25,14 +25,30 @@ contract DeploymentTest is Test {
     address internal constant INTAKE_V2 = 0xa43e6F75ee006411F79Ac1C84120606C2330DE82;
     address internal constant SEPOLIA_ORACLE_IMD = 0x44a1Cd38474FB1748400E7DEb5F8D786ccE3F89A;
     address internal constant ORACLE_SIGNER = 0x5598Aa9146215Bc13eb26f2c692Ad1461Fd32982;
+    /// @dev Sepolia test run 2 (launch #1294): the live Stacker on the test pair, which PLEA's hook
+    /// credits through. Test run 3 deploys only a registry wired to it.
+    address internal constant SEPOLIA_STACKER = 0x0457276D7b036818B3EddC1A4A3FCeda61e9314d;
 
-    /// @dev main: the Stacker alone, on mainnet. sepolia: the Stacker on the test pair, then the
-    /// ProjectRegistry wired to it, Intake v2, the test IMD and the oracle signer.
+    /// @dev main: the Stacker alone, on mainnet. sepolia: either the Stacker on the test pair, then
+    /// the ProjectRegistry wired to it (test run 2), or the ProjectRegistry alone, wired to test
+    /// run 2's live Stacker (test run 3); both with Intake v2, the test IMD, the oracle signer and
+    /// the agreed Sepolia bond and cooldown.
     function test_launchManifest_knownShape() public view {
         string memory json = vm.readFile("./launch.json");
         assertEq(vm.parseJsonString(json, ".kind"), "evm_contracts");
-        assertEq(vm.parseJsonString(json, ".contracts[0].contract"), "Stacker");
         assertFalse(vm.keyExistsJson(json, ".contracts[2]"), "at most two contracts");
+
+        if (
+            keccak256(bytes(vm.parseJsonString(json, ".contracts[0].contract")))
+                == keccak256("ProjectRegistry")
+        ) {
+            assertFalse(vm.keyExistsJson(json, ".contracts[1]"), "the registry alone");
+            string[] memory reg = _sepoliaRegistryArgs(json, ".contracts[0].constructorArgs");
+            assertEq(vm.parseAddress(reg[2]), SEPOLIA_STACKER, "test run 2's live Stacker");
+            return;
+        }
+
+        assertEq(vm.parseJsonString(json, ".contracts[0].contract"), "Stacker");
         string[] memory args = vm.parseJsonStringArray(json, ".contracts[0].constructorArgs");
         assertEq(args.length, 2);
         address imd = vm.parseAddress(args[0]);
@@ -44,15 +60,24 @@ contract DeploymentTest is Test {
         if (!vm.keyExistsJson(json, ".contracts[1]")) return;
         assertTrue(sepoliaTest, "the registry ships on Sepolia first");
         assertEq(vm.parseJsonString(json, ".contracts[1].contract"), "ProjectRegistry");
-        string[] memory r = vm.parseJsonStringArray(json, ".contracts[1].constructorArgs");
+        string[] memory r = _sepoliaRegistryArgs(json, ".contracts[1].constructorArgs");
+        assertEq(r[2], "$contract:Stacker", "the Stacker of this launch");
+    }
+
+    /// @dev Checks a Sepolia registry's arguments except the Stacker (index 2), left to the caller.
+    function _sepoliaRegistryArgs(string memory json, string memory key)
+        internal
+        pure
+        returns (string[] memory r)
+    {
+        r = vm.parseJsonStringArray(json, key);
         assertEq(r.length, 7);
         assertEq(vm.parseAddress(r[0]), INTAKE_V2, "intake");
         assertEq(vm.parseAddress(r[1]), SEPOLIA_ORACLE_IMD, "oracle asset");
-        assertEq(r[2], "$contract:Stacker", "the Stacker of this launch");
         assertEq(vm.parseAddress(r[3]), ORACLE_SIGNER, "oracle signer");
         assertEq(vm.parseUint(r[4]), 1, "questions filed under chain 1");
-        assertGt(vm.parseUint(r[5]), 0, "a challenge bond");
-        assertGt(vm.parseUint(r[6]), 0, "a challenge cooldown");
+        assertEq(vm.parseUint(r[5]), 5e18, "agreed Sepolia bond: 5 test IMD");
+        assertEq(vm.parseUint(r[6]), 1 hours, "agreed Sepolia cooldown: 1 hour");
     }
 
     function test_registry_emptyChainRehearsal_constructorPasses() public {
