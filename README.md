@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Status** | Sepolia test run 2 live (launch #1294): the new Stacker and the on-chain ProjectRegistry. First integration, PLEA, live on the first Stacker (launch #1129). Next: the registry trial with PLEA, then mainnet. |
+| **Status** | Sepolia test run 2 live (launch #1294): the new Stacker and the on-chain ProjectRegistry. Registry trial under way: PLEA's two applications split the oracle panel (no answer), and the negative case was rejected with a signed answer ([history, section 17](docs/history.md#17-registry-trial-pleas-first-applications-2026-10-12)). Then mainnet. |
 | **Test site** | https://imd-acc-sepolia-test-run-2.sites.imd.fun/ (test run 2: Home, Stack, Projects, Apply, Leaderboard, Docs; the first run's page: https://imd-acc-sepolia-test-run.site.identitymd.eth.limo) |
 | **Contract code** | [`src/Stacker.sol`](src/Stacker.sol) (the cashback funnel) and [`src/ProjectRegistry.sol`](src/ProjectRegistry.sol) (the oracle-decided project list) in this repository. The first Sepolia launch's code, built and deployed by the [IMD swarm](https://imd.fun), is in the [launch-1129 repository](https://github.com/identity-md-launches/launch-1129-build-imd-acc-sepolia-test). |
 
@@ -127,7 +127,7 @@ The all-traders dashboard and leaderboards (top traders, top projects, 7-day and
 | Project | Status |
 |---|---|
 | PLEA v10 (hook `0x3d4C…68Cc`, first Stacker) | Not listed. Its listing job for the first test page ([`jobs/3-list-plea.md`](jobs/3-list-plea.md)) is no longer needed, since test run 2 replaces that page. |
-| PLEA, next version (Stacker of test run 2) | First applicant to the Sepolia ProjectRegistry, at 50 bps with its beneficiary. |
+| PLEA, next version (hook `0x2d5a…a8cc`, Stacker of test run 2) | Applied twice to the Sepolia ProjectRegistry at 50 bps on 2026-10-12; both panels split (8 and 9 of 13 said yes, 11 needed), so it isn't listed yet. Its credits show as direct, no points. |
 
 ## Integrating a project
 

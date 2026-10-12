@@ -96,6 +96,8 @@ Confirmed by the owner on 2026-10-11, for both chains.
 5. A challenge against PLEA. Expected: it stays listed and the bond goes to its beneficiary.
 6. The test page shows the registry's state and counts points by its listing periods.
 
+**Results so far (2026-10-12, [history section 17](history.md#17-registry-trial-pleas-first-applications-2026-10-12)):** PLEA applied twice and both panels split (8 and 9 of 13 yes, 11 needed), so both were cleared as no-answer cases; the false answers read the plain-IMD fallback, a claims payout that skips the Stacker and the trader from `hookData` as breaking the trading rule. The negative case `SelfCredit` was rejected 12 to 0 with a signed answer. The listing and challenge steps wait for a listed project.
+
 ## Points now, token maybe later
 
 v1 has **no token**:
