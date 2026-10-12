@@ -51,6 +51,8 @@ The question names the Stacker, the project, the chain and the registry, the sta
 - **beneficiary:** the project's owner, or a wallet its verified source or official website names as its team or treasury. This stops someone from applying for another team's project with their own wallet as beneficiary;
 - **evidence:** the verified source on the chain's explorer; unverified code means false.
 
+**Version 2 (draft, 2026-10-12):** after PLEA's applications split the panel, clearer rules were written and rehearsed (11 of 13 yes, signed): [panel-rules-v2.md](panel-rules-v2.md). They add that a plain-IMD fallback or other uncredited payout is allowed and earns no points, that the trader may come from the swap caller's `hookData`, that value no owner or team wallet can ever withdraw leaves for good, and that Etherscan, Blockscout or Sourcify count as verified source. Each rule must stay under 512 characters. Not in the contract yet.
+
 A challenge asks whether the listed project still meets all of them, with the challenger's reason as untrusted text. Panel: 15 seats, 11 must agree. IMD's free check accepted this question (no blockers, judged answerable).
 
 **Filed under chain 1.** The oracle has no Sepolia RPC (its check refuses chain 11155111), so Sepolia questions are filed under chain 1, like PLEA's gate does, and the text names Sepolia. The registry's `questionChainId` is 1 on Sepolia and mainnet; it would be 4663 on Robinhood Chain.
