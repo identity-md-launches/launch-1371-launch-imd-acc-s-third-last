@@ -8,6 +8,17 @@ import {TestSIMD} from "./mocks/TestSIMD.sol";
 import {Stacker, IStakedIMD} from "../src/Stacker.sol";
 import {ProjectRegistry} from "../src/ProjectRegistry.sol";
 
+/// @dev Test-only stand-in for the launch factory: one CREATE2 with the init code as built, no
+/// value and no initialization call, as the launch's protected probe does it.
+contract Create2Probe {
+    function deploy(bytes memory code, bytes32 salt) external returns (address deployed) {
+        assembly ("memory-safe") {
+            deployed := create2(0, add(code, 32), mload(code), salt)
+        }
+        require(deployed != address(0) && deployed.code.length > 0, "constructor failed");
+    }
+}
+
 /// @dev Rehearses a launch: the manifest deploys exactly one Stacker, wired to a known IMD and vault
 /// pair (Ethereum mainnet on `main`, the live Sepolia test pair on the `sepolia` branch); the
 /// constructor passes on an empty chain (the launch's rehearsal, where neither address has code);
@@ -78,6 +89,66 @@ contract DeploymentTest is Test {
         assertEq(vm.parseUint(r[4]), 1, "questions filed under chain 1");
         assertEq(vm.parseUint(r[5]), 5e18, "agreed Sepolia bond: 5 test IMD");
         assertEq(vm.parseUint(r[6]), 1 hours, "agreed Sepolia cooldown: 1 hour");
+    }
+
+    /// @dev Test run 3 end to end, the way the launch's protected probe does it: the arguments are
+    /// read from launch.json (not retyped), appended to the registry's init code, and deployed
+    /// through CREATE2 from a factory on an empty Sepolia-id chain where none of the named
+    /// addresses has code. Checks the predicted address, the wiring the constructor stored, the
+    /// runtime limits, and that the registry has no owner.
+    function test_launchManifest_registryDeploysThroughFactoryOnEmptySepolia() public {
+        string memory json = vm.readFile("./launch.json");
+        if (
+            keccak256(bytes(vm.parseJsonString(json, ".contracts[0].contract")))
+                != keccak256("ProjectRegistry")
+        ) return; // the Stacker-first shapes are rehearsed in FactoryRehearsal.t.sol
+        string[] memory a = vm.parseJsonStringArray(json, ".contracts[0].constructorArgs");
+        assertEq(a.length, 7);
+        bytes memory initCode = abi.encodePacked(
+            type(ProjectRegistry).creationCode,
+            abi.encode(
+                vm.parseAddress(a[0]),
+                vm.parseAddress(a[1]),
+                vm.parseAddress(a[2]),
+                vm.parseAddress(a[3]),
+                vm.parseUint(a[4]),
+                vm.parseUint(a[5]),
+                uint64(vm.parseUint(a[6]))
+            )
+        );
+        assertLe(initCode.length, 49_152, "init code within the probe's limit");
+
+        vm.chainId(11_155_111);
+        assertEq(INTAKE_V2.code.length, 0);
+        assertEq(SEPOLIA_ORACLE_IMD.code.length, 0);
+        assertEq(SEPOLIA_STACKER.code.length, 0);
+        Create2Probe factory = new Create2Probe();
+        bytes32 salt = keccak256("imd/acc Sepolia test run 3");
+        address predicted = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(bytes1(0xff), address(factory), salt, keccak256(initCode))
+                    )
+                )
+            )
+        );
+        address deployed = factory.deploy(initCode, salt);
+        assertEq(deployed, predicted, "application prediction");
+        _checkRuntime(deployed);
+
+        ProjectRegistry reg = ProjectRegistry(deployed);
+        assertEq(address(reg.intake()), INTAKE_V2);
+        assertEq(address(reg.oracleAsset()), SEPOLIA_ORACLE_IMD);
+        assertEq(reg.stacker(), SEPOLIA_STACKER, "wired to test run 2's live Stacker");
+        assertEq(reg.oracleSigner(), ORACLE_SIGNER);
+        assertEq(reg.questionChainId(), 1);
+        assertEq(reg.challengeBond(), 5e18);
+        assertEq(reg.challengeCooldown(), 3600);
+        assertEq(reg.onOracleResult.selector, bytes4(0x510379c7));
+        assertEq(reg.onOracleFailure.selector, bytes4(0xa7980e31));
+        (bool hasOwner,) = deployed.staticcall(abi.encodeWithSignature("owner()"));
+        assertFalse(hasOwner, "no owner");
     }
 
     function test_registry_emptyChainRehearsal_constructorPasses() public {

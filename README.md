@@ -94,6 +94,14 @@ Same TestIMD and TestSIMD as above. Code: [launch-1294 repository](https://githu
 
 Test site: https://imd-acc-sepolia-test-run-2.sites.imd.fun/, one page each for Home (`#/`), Your stack (`#/stack`), Projects (`#/projects`, and `#/projects/<address>` per project), Apply (`#/apply`), Leaderboard (`#/leaderboard`) and Docs (`#/docs/<section>`), plus agent text at [`/llms.txt`](https://imd-acc-sepolia-test-run-2.sites.imd.fun/llms.txt). Built by jobs [`6`](jobs/6-sepolia-v2-site.md) and [`7`](jobs/7-sepolia-v2-site-pages.md); checked in a browser on every page ([history, section 16](docs/history.md#16-test-run-2-site-v2-live-and-checked-2026-10-11)).
 
+### Sepolia test run 3 (launching)
+
+The last Sepolia run before mainnet: the ProjectRegistry alone, from this repository's `launch-sepolia` branch, wired to test run 2's live Stacker `0x0457…314d` (not redeployed) and to IdentityMD's Intake v2. It is the code the mainnet registry will use (panel rules version 2, one beneficiary handoff per day), with the Sepolia settings: fee read live from the Intake (0.5 test IMD of `0x44a1…f89a`), challenge bond 5 test IMD, cooldown 1 hour, panel 15/11, questions filed under chain 1. Same TestIMD and TestSIMD as test run 1.
+
+| Contract | Address | Notes |
+|---|---|---|
+| ProjectRegistry | not deployed yet; filled in once live | Deployed as listed in [`launch.json`](launch.json): `ProjectRegistry(Intake v2, Sepolia test IMD, Stacker 0x0457…314d, oracle signer, 1, 5e18, 3600)`. Challenges use `challengeForBeneficiary(project, reason, expectedBeneficiary)`. What changed for the launch: [`ADAPTATION.md`](ADAPTATION.md). |
+
 ### Ethereum mainnet (next)
 
 | Contract | Address | Notes |
