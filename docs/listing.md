@@ -87,7 +87,7 @@ The repository owner. Every change to the list is public in the git history: who
 
 A small on-chain contract with **no owner** ([`src/ProjectRegistry.sol`](../src/ProjectRegistry.sol)), first deployed in Sepolia test run 2, with PLEA as the first applicant. **The Stacker is never redeployed:** it doesn't know about listings, so the site and the indexer read the registry's events instead of a file.
 
-1. **Apply.** Anyone calls `applyListing(project, name, sourceUrl, rateBps, beneficiary)` and pays the 0.5 IMD oracle fee. The project must be a contract; the rate 25 to 100.
+1. **Apply.** Anyone calls `applyListing(project, name, sourceUrl, rateBps, beneficiary)` and pays the oracle fee (read live from the Intake: 0.5 IMD today). The project must be a contract; the rate 25 to 100.
 2. **The panel answers** in a few minutes: true only if every rule on the checklist holds, including the fee guard and that the beneficiary belongs to the project's team. **Yes** lists the project from that block; **no** rejects it, and it can apply again.
 3. **No answer** (the panel split or the question was refused): the application is cleared and can be sent again at once. Nothing is listed.
 4. **Challenge.** Anyone can challenge a listed project, after a cooldown, by paying the oracle fee plus a bond. If the panel says it still meets the rules, it stays listed and **the bond goes to the project's beneficiary**; if not, it is delisted from that block, earlier points stay, and the challenger gets the bond back.

@@ -2,7 +2,7 @@
 
 The rules (`definitions`) the IdentityMD oracle panel reads when it judges a listing. Version 1 is what the deployed Sepolia ProjectRegistry sends; it is fixed in that contract's code. Version 2 says the same things more plainly, after PLEA's two Sepolia applications split the panel ([history, section 17](history.md#17-registry-trial-pleas-first-applications-2026-10-12)). It was rehearsed once on Sepolia and reached a signed answer ([history, section 18](history.md#18-clearer-panel-rules-rehearsed-2026-10-12)).
 
-**Not in any contract yet.** Putting it into `src/ProjectRegistry.sol` for the mainnet registry needs the owner's approval, together with IMD's Sepolia fixes.
+**In `src/ProjectRegistry.sol` on `main` since 2026-10-12**, approved by the owner together with IMD's Sepolia fixes, for the mainnet registry. Not deployed anywhere yet; the Sepolia registry keeps version 1. A local deployment returns these rules for PLEA's hook character for character as rehearsed.
 
 ## The rules
 
