@@ -150,3 +150,4 @@ PLEA is a sell-gated meme token on Uniswap v4 (its own repository, `khaed1/plea`
 - **Small issues, not blocking the trial:**
   - The reviewer's finding, reproduced: each refresh (every 60s, every 15s while any question is open) briefly removes the Apply form's panel question, so the page shrinks by about 630px at 360px and jumps; a "no contract code" error loses its text and `aria-invalid` for a moment.
   - With the menu open, Tab reaches the theme and Connect buttons before the menu links.
+  - Also seen in a second check from the earlier session: a visible focus frame around each page's h1 after navigation (on Home it shows at load); on phones the Last 5 stacks table cuts off its columns (it scrolls inside its box with no hint); the copy "0 all projects." on the Projects page.
