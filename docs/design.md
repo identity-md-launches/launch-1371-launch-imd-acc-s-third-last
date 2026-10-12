@@ -40,7 +40,7 @@ Anyone can call `credit` with their own IMD. That is just staking for someone, a
 | Challenge, signed **no** | oracle panel | Delisted from this block (`Delisted`); **the bond goes back to the challenger**. Points before this block stay. The project can apply again later; a new listing starts a new period. |
 | No answer (refused or split panel) | Intake, through `onOracleFailure` | The open question is cleared (`AskCleared`) and a challenger's bond goes back. Nothing is listed or delisted. |
 | `expire(project)` | anyone | Clears an open question after a day, or at once if the Intake completed it without a settled answer (for example a callback that ran out of gas). A challenger's bond goes back. |
-| `setBeneficiary(project, wallet)` | the current beneficiary | Hands a listed project's points to another wallet. Refused while a question is open; after any handoff, challenges must use `challengeForBeneficiary`. |
+| `setBeneficiary(project, wallet)` | the current beneficiary | Hands a listed project's points to another wallet. Refused while a question is open, and at most one handoff per day (`HANDOFF_INTERVAL`), so a beneficiary can't refuse every challenge by moving the wallet ahead of each one; after any handoff, challenges must use `challengeForBeneficiary`. |
 
 ### What the panel is asked
 
