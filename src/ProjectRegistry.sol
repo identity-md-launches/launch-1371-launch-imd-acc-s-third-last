@@ -87,6 +87,12 @@ contract ProjectRegistry is OracleAttestationConsumer, ReentrancyGuard {
     uint16 public constant MAX_RATE_BPS = 100;
     /// @notice After this long, an open question with no settled answer can be cleared by anyone.
     uint64 public constant PENDING_EXPIRY = 1 days;
+    /// @notice A listed project's beneficiary can be handed off at most once in this long. A
+    /// handoff invalidates a pending `challengeForBeneficiary`, so an unbounded one would let a
+    /// beneficiary that watches the mempool refuse every challenge for the cost of gas, moving the
+    /// wallet back and forth ahead of each attempt. With one handoff per interval, a challenger
+    /// who retries against the new wallet always gets a question filed.
+    uint64 public constant HANDOFF_INTERVAL = 1 days;
     /// @notice Reject deployment inputs that could overflow the listing deadline or lock out
     /// challenges for an impractical period. The Sepolia launch uses one hour.
     uint64 public constant MAX_CHALLENGE_COOLDOWN = 365 days;
@@ -119,6 +125,9 @@ contract ProjectRegistry is OracleAttestationConsumer, ReentrancyGuard {
     /// @notice After a beneficiary handoff, challenges must explicitly pin the intended wallet.
     /// This stays true across relistings so restoring an old wallet cannot revive an unsafe call.
     mapping(address => bool) public beneficiaryPinRequired;
+    /// @notice No beneficiary handoff for the project before this time (`HANDOFF_INTERVAL` after
+    /// the last one). Setting the same wallet again is not a handoff and does not start it.
+    mapping(address => uint64) public handoffOpenAt;
 
     event Applied(
         address indexed project,
@@ -167,6 +176,7 @@ contract ProjectRegistry is OracleAttestationConsumer, ReentrancyGuard {
     error OracleUnavailable();
     error BeneficiaryChanged(address expected, address actual);
     error BeneficiaryPinRequired();
+    error HandoffTooSoon(uint64 openAt);
     error CooldownOutOfRange();
 
     /// @dev Makes no external call, so the launch's empty-chain rehearsal can deploy it.
@@ -426,14 +436,20 @@ contract ProjectRegistry is OracleAttestationConsumer, ReentrancyGuard {
     // ================================================================ beneficiary
 
     /// @notice A listed project's beneficiary can hand its points to another wallet when no
-    /// question is open. The beneficiary named in a challenge remains its defended-bond recipient.
+    /// question is open, at most once per `HANDOFF_INTERVAL`. The beneficiary named in a
+    /// challenge remains its defended-bond recipient.
     function setBeneficiary(address project, address beneficiary) external {
         Project storage p = _projects[project];
         if (!p.listed) revert NotListed();
         if (p.ask != Ask.None) revert AskOpen();
         if (msg.sender != p.beneficiary) revert NotBeneficiary();
         if (beneficiary == address(0)) revert ZeroAddress();
-        if (beneficiary != p.beneficiary) beneficiaryPinRequired[project] = true;
+        if (beneficiary != p.beneficiary) {
+            uint64 openAt = handoffOpenAt[project];
+            if (block.timestamp < openAt) revert HandoffTooSoon(openAt);
+            handoffOpenAt[project] = uint64(block.timestamp) + HANDOFF_INTERVAL;
+            beneficiaryPinRequired[project] = true;
+        }
         p.beneficiary = beneficiary;
         emit BeneficiarySet(project, beneficiary);
     }

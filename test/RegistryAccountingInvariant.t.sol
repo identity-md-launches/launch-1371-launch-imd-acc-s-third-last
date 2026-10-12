@@ -27,6 +27,7 @@ contract RegistryAccountingHandler is Test {
         uint64 fromBlock;
         uint64 toBlock;
         uint64 challengeOpenAt;
+        uint64 handoffOpenAt;
         bytes32 requestId;
     }
 
@@ -56,6 +57,7 @@ contract RegistryAccountingHandler is Test {
     uint256 public invalidAttempts;
     uint256 public retiredAttempts;
     uint256 public lockedHandovers;
+    uint256 public pacedHandovers;
     uint256 public unsafeChallengeAttempts;
 
     constructor(ProjectRegistry reg_, MockIntake intake_, MintableIMD imd_) {
@@ -219,8 +221,19 @@ contract RegistryAccountingHandler is Test {
             lockedHandovers++;
             return;
         }
+        if (next != m.beneficiary && block.timestamp < m.handoffOpenAt) {
+            vm.expectRevert(
+                abi.encodeWithSelector(ProjectRegistry.HandoffTooSoon.selector, m.handoffOpenAt)
+            );
+            reg.setBeneficiary(projects[pIndex], next);
+            pacedHandovers++;
+            return;
+        }
         reg.setBeneficiary(projects[pIndex], next);
-        if (next != m.beneficiary) m.pinRequired = true;
+        if (next != m.beneficiary) {
+            m.pinRequired = true;
+            m.handoffOpenAt = uint64(block.timestamp + 1 days);
+        }
         m.beneficiary = next;
     }
 
@@ -361,6 +374,7 @@ contract RegistryAccountingHandler is Test {
             assertEq(
                 reg.beneficiaryPinRequired(projects[i]), m.pinRequired, "handoff pin is permanent"
             );
+            assertEq(reg.handoffOpenAt(projects[i]), m.handoffOpenAt, "one handoff per interval");
             assertEq(actual.rateBps, m.rate, "stated rate");
             assertEq(actual.askedAt, m.askedAt, "request timestamp");
             assertEq(actual.fromBlock, m.fromBlock, "listing start");
@@ -509,6 +523,10 @@ contract RegistryAccountingInvariantTest is StdInvariant, Test {
         assertEq(handler.retiredAttempts(), 1);
         _check();
         handler.reprice(0.5e18);
+        handler.handOver(0, 1); // too soon after the last handoff: refused, model unchanged
+        assertEq(handler.pacedHandovers(), 1);
+        _check();
+        handler.passTime(1 days, 1);
         handler.handOver(0, 1); // restoring the original wallet cannot clear the pin
         handler.unsafeChallenge(0, 2);
         _check();

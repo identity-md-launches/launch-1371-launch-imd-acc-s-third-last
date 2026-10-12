@@ -86,7 +86,9 @@ contract RegistryRevisionRegressionTest is RegistryBase {
         assertEq(intake.count(), count);
         assertEq(uint8(reg.projectOf(project).ask), uint8(ProjectRegistry.Ask.None));
 
-        // Restoring the old wallet restores the terms the challenger actually wanted judged.
+        // Restoring the old wallet restores the terms the challenger actually wanted judged
+        // (after the handoff interval: one handoff per day, so a front-run cannot be undone).
+        vm.warp(block.timestamp + reg.HANDOFF_INTERVAL());
         vm.prank(team);
         reg.setBeneficiary(project, beneficiary);
         vm.prank(challenger);
@@ -117,6 +119,7 @@ contract RegistryRevisionRegressionTest is RegistryBase {
         reg.challenge(project, "The beneficiary is an outsider.");
         assertEq(imd.balanceOf(challenger), balance);
         assertEq(intake.count(), count);
+        vm.warp(block.timestamp + reg.HANDOFF_INTERVAL());
         vm.prank(team);
         reg.setBeneficiary(project, beneficiary);
         vm.prank(challenger);
@@ -144,7 +147,88 @@ contract RegistryRevisionRegressionTest is RegistryBase {
         vm.prank(beneficiary);
         reg.setBeneficiary(project, beneficiary);
         assertFalse(reg.beneficiaryPinRequired(project));
+        assertEq(reg.handoffOpenAt(project), 0, "a no-op is not a handoff");
         assertTrue(_answer(_challenge(), true));
+    }
+
+    /// @dev Reviewer finding 047a2339: a beneficiary watching the mempool could refuse every
+    /// `challengeForBeneficiary` for free by moving the wallet ahead of each attempt and back
+    /// before the next. One handoff per `HANDOFF_INTERVAL` ends that: the retry against the
+    /// wallet now in force lands, with the fee and bond paid once and a question filed.
+    function test_beneficiaryCannotBlockEveryChallengeByTogglingWallets() public {
+        _listed();
+        vm.warp(block.timestamp + COOLDOWN);
+        address other = makeAddr("beneficiary's other wallet");
+        uint256 balance = imd.balanceOf(challenger);
+        uint256 count = intake.count();
+
+        // Round 1: the challenger saw `beneficiary`; the handoff is included first.
+        vm.prank(beneficiary);
+        reg.setBeneficiary(project, other);
+        vm.prank(challenger);
+        vm.expectRevert(
+            abi.encodeWithSelector(ProjectRegistry.BeneficiaryChanged.selector, beneficiary, other)
+        );
+        reg.challengeForBeneficiary(project, "rate guard removed in v2", beneficiary);
+        assertEq(imd.balanceOf(challenger), balance, "front-run costs the challenger nothing");
+
+        // Round 2: the challenger names `other`; moving back is refused for a day.
+        uint64 openAt = reg.handoffOpenAt(project);
+        assertEq(openAt, uint64(block.timestamp) + reg.HANDOFF_INTERVAL());
+        vm.prank(other);
+        vm.expectRevert(abi.encodeWithSelector(ProjectRegistry.HandoffTooSoon.selector, openAt));
+        reg.setBeneficiary(project, beneficiary);
+        vm.prank(challenger);
+        bytes32 id = reg.challengeForBeneficiary(project, "rate guard removed in v2", other);
+        assertEq(intake.count(), count + 1, "the challenge is filed");
+        assertEq(balance - imd.balanceOf(challenger), 0.5e18 + BOND);
+        string memory rule =
+            vm.parseJsonString(string(intake.bodyOf(id)), ".definitions.beneficiary");
+        assertTrue(vm.contains(rule, vm.toLowercase(vm.toString(other))));
+        assertTrue(_answer(id, false));
+        assertFalse(reg.isListed(project));
+        assertEq(balance - imd.balanceOf(challenger), 0.5e18, "bond back on a delisting");
+    }
+
+    function test_handoffIntervalBoundaryAndRelisting() public {
+        _listed();
+        address team = makeAddr("team");
+        vm.prank(beneficiary);
+        reg.setBeneficiary(project, team);
+        uint64 openAt = reg.handoffOpenAt(project);
+        assertEq(openAt, uint64(block.timestamp) + 1 days);
+
+        // The same wallet can be set again at any time; a different one must wait.
+        vm.prank(team);
+        reg.setBeneficiary(project, team);
+        assertEq(reg.handoffOpenAt(project), openAt, "a no-op does not restart the interval");
+        vm.warp(openAt - 1);
+        vm.prank(team);
+        vm.expectRevert(abi.encodeWithSelector(ProjectRegistry.HandoffTooSoon.selector, openAt));
+        reg.setBeneficiary(project, beneficiary);
+        // A defended challenge in between changes nothing about the interval.
+        vm.prank(challenger);
+        bytes32 id = reg.challengeForBeneficiary(project, "Review the team wallet.", team);
+        assertTrue(_answer(id, true));
+        assertEq(imd.balanceOf(team), BOND);
+        assertEq(reg.handoffOpenAt(project), openAt);
+        vm.warp(openAt);
+        vm.prank(team);
+        reg.setBeneficiary(project, beneficiary);
+        assertEq(reg.projectOf(project).beneficiary, beneficiary);
+        assertEq(reg.handoffOpenAt(project), openAt + 1 days);
+
+        // Delisting and relisting (an application names any beneficiary) keep the interval.
+        vm.prank(challenger);
+        id = reg.challengeForBeneficiary(project, "Review again.", beneficiary);
+        assertTrue(_answer(id, false));
+        _listed();
+        assertEq(reg.handoffOpenAt(project), openAt + 1 days);
+        vm.prank(beneficiary);
+        vm.expectRevert(
+            abi.encodeWithSelector(ProjectRegistry.HandoffTooSoon.selector, openAt + 1 days)
+        );
+        reg.setBeneficiary(project, team);
     }
 
     function test_pinnedChallengePreservesCooldownAndSlotRules() public {

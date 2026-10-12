@@ -134,8 +134,13 @@ contract RegistryHandler is Test {
         address p = projects[pSeed % projects.length];
         ProjectRegistry.Project memory s = reg.projectOf(p);
         if (!s.listed || s.ask != ProjectRegistry.Ask.None) return;
+        address next = actors[aSeed % actors.length];
+        uint64 openAt = reg.handoffOpenAt(p);
         vm.prank(s.beneficiary);
-        reg.setBeneficiary(p, actors[aSeed % actors.length]);
+        if (next != s.beneficiary && block.timestamp < openAt) {
+            vm.expectRevert(abi.encodeWithSelector(ProjectRegistry.HandoffTooSoon.selector, openAt));
+        }
+        reg.setBeneficiary(p, next);
     }
 }
 
