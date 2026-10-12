@@ -63,13 +63,13 @@ event Stacked(address indexed project, address indexed trader, uint256 imd, uint
 | Project | `msg.sender`. Any contract or wallet can call `credit`; [points](#points) decide who counts. |
 | Flow | Pulls `imdAmount` IMD from the caller, then calls `sIMD.deposit(imdAmount, trader)`. |
 | Holds nothing | 0 IMD and 0 sIMD between calls (tested as an invariant). |
-| Fixed | IMD and sIMD addresses are immutable; the constructor checks `sIMD.asset() == IMD` and approves the vault once. Both are skipped only where the vault has no code (IMD's empty-chain launch rehearsal); such a Stacker can't move any IMD. |
+| Fixed | IMD and sIMD addresses are immutable. The constructor only stores them and makes no external call (an IMD launch rule); the first non-zero `credit` checks `sIMD.asset() == IMD` and approves the vault once, and a failed credit rolls both back. |
 | Totals on chain | Per project (`projectStacked`, `projectShares`) and in total (`totalStacked`). |
 | Per trader | From the `Stacked` events, which record project, trader, IMD and shares for every credit. Storing them on chain too would cost every trader extra gas, so the mainnet Stacker doesn't. |
 | Failures | Reverts and moves nothing if the vault is paused, the allowance or balance is short, the trader is zero, or the vault would mint 0 shares. A 0 amount returns 0 with no event. |
 | Safety | `nonReentrant`, OpenZeppelin `SafeERC20`, no owner or admin functions at all. |
 
-Source: [`src/Stacker.sol`](src/Stacker.sol). The Sepolia Stacker is the same contract, plus per-trader totals on chain (`traderStacked`, `stackedBy`, `traderShares`) and the constructor checks without the empty-chain case.
+Source: [`src/Stacker.sol`](src/Stacker.sol), the exact contract live on Sepolia since test run 2 (launch #1294). The first Sepolia Stacker (launch #1129) also stored per-trader totals on chain (`traderStacked`, `stackedBy`, `traderShares`).
 
 ## Deployments
 
@@ -85,7 +85,7 @@ Test page: https://imd-acc-sepolia-test-run.site.identitymd.eth.limo. It shows y
 
 ### Sepolia test run 2 (live, launch #1294, block 11,891,109)
 
-Same TestIMD and TestSIMD as above. Code: [launch-1294 repository](https://github.com/identity-md-launches/launch-1294-deploy-two-smart-contracts), commit `ef39dd18`. IMD's audit changed both contracts slightly before deploying ([history, section 11](docs/history.md#11-test-run-2-launch-job-imd-changed-the-contracts-2026-10-11)).
+Same TestIMD and TestSIMD as above. Code: [launch-1294 repository](https://github.com/identity-md-launches/launch-1294-deploy-two-smart-contracts), commit `ef39dd18`. IMD's audit changed both contracts slightly before deploying ([history, section 11](docs/history.md#11-test-run-2-launch-job-imd-changed-the-contracts-2026-10-11)); `main` carries those changes since 2026-10-12, and its registry also has the clearer panel rules (version 2), which the deployed Sepolia registry doesn't.
 
 | Contract | Address | Notes |
 |---|---|---|
@@ -153,7 +153,7 @@ Rules:
 
    | Network | New trader | Repeat trader |
    |---|---|---|
-   | Ethereum mainnet (this Stacker, fork test) | 130k | 96k |
+   | Ethereum mainnet (this Stacker, fork test) | 136k | 102k |
    | Sepolia (the launch #1129 Stacker; today's expensive new storage) | 0.7M–1.2M | about 0.2M |
 
    Wallets should send estimates ×1.3.
@@ -221,7 +221,7 @@ With [Foundry](https://getfoundry.sh) 1.8.3, the version IMD's verifier runs:
 
 ```
 forge build
-forge test                                                        # 68 tests; the 7 fork tests skip
+forge test                                                        # 157 tests; the 7 fork tests skip
 ETH_RPC_URL=https://ethereum-rpc.publicnode.com forge test --mc MainnetFork            # live IMD and sIMD
 SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com forge test --mc SepoliaFork # live TestIMD and TestSIMD; RegistrySepoliaFork: the real Intake v2
 forge fmt --check src test
