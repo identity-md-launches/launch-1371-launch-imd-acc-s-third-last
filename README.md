@@ -196,6 +196,7 @@ docs/
   design.md               design detail: building blocks, points, ProjectRegistry, v2 ETH route,
                           decisions, open questions, launch settings, btc/acc lessons
   history.md              what happened so far, with the checks and transactions behind it
+  panel-rules-v2.md       clearer oracle panel rules for the mainnet registry (draft, rehearsed on Sepolia)
   explainer.html          a one-page explainer for traders and projects
 jobs/                     IMD swarm job prompts, in order
   1-sepolia-launch.md     the Sepolia launch (done, launch #1129)
